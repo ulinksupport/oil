@@ -1,0 +1,242 @@
+{
+    "name": "OIL Tracker — AI Query Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "oil-query",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "node_webhook_query",
+            "name": "Webhook — Receive Query",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "oil-query"
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Validate question field ──────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\nconst question = body.question || '';\n\nif (!question.trim()) {\n  throw new Error('A question is required.');\n}\n\nreturn [{ json: { question: question.trim() } }];\n"
+            },
+            "id": "node_validate_query",
+            "name": "Validate Question",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "read",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "OIL_Tracker"
+                },
+                "options": {}
+            },
+            "id": "node_read_sheet",
+            "name": "Read Google Sheet",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                680,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Format OIL sheet data as a readable table for ChatGPT ──────────────────\nconst rows = $input.all();\nconst question = $('Validate Question').first().json.question;\n\nif (!rows || rows.length === 0) {\n  return [{ json: {\n    question,\n    formattedData: 'No OIL submissions found in the database yet.',\n    rowCount: 0\n  }}];\n}\n\n// Build a markdown table string\nconst headers = [\n  'Staff Name', 'Date Applied', 'OIL Date Worked', 'OIL Time Worked',\n  'OIL Hours', 'Reason', 'Validation Status', 'Submitted At'\n];\n\nlet table = '| ' + headers.join(' | ') + ' |\\n';\ntable += '| ' + headers.map(() => '---').join(' | ') + ' |\\n';\n\nfor (const row of rows) {\n  const r = row.json;\n  table += `| ${r['Staff Name'] || ''} | ${r['Date Applied'] || ''} | ${r['OIL Date Worked'] || ''} | ${r['OIL Time Worked'] || ''} | ${r['OIL Hours'] || ''} | ${(r['Reason'] || '').substring(0, 60)} | ${r['Validation Status'] || ''} | ${r['Submitted At'] || ''} |\\n`;\n}\n\nreturn [{ json: {\n  question,\n  formattedData: table,\n  rowCount: rows.length\n}}];\n"
+            },
+            "id": "node_format_data",
+            "name": "Format Sheet Data",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "model": "gpt-4o-mini",
+                "messages": {
+                    "values": [
+                        {
+                            "role": "system",
+                            "content": "You are a helpful OIL (Off-in-Lieu) tracking assistant for a company. You have access to the company's OIL submission database below.\n\nWhen answering questions:\n- Calculate totals by summing the 'OIL Hours' column for the relevant staff member or time period\n- Only count entries where Validation Status is 'Approved' unless the user specifically asks for all entries\n- Format numbers neatly (e.g. '3.5 hours')\n- If asked for a summary, group by staff member and show their total OIL hours\n- Be concise and clear\n- If no data matches the query, say so politely\n\nOIL DATA:\n{{ $json.formattedData }}\n\nTotal records: {{ $json.rowCount }}"
+                        },
+                        {
+                            "role": "user",
+                            "content": "={{ $json.question }}"
+                        }
+                    ]
+                },
+                "options": {
+                    "maxTokens": 1000,
+                    "temperature": 0.2
+                }
+            },
+            "id": "node_chatgpt",
+            "name": "ChatGPT — Answer Query",
+            "type": "@n8n/n8n-nodes-langchain.openAi",
+            "typeVersion": 1,
+            "position": [
+                1120,
+                300
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "REPLACE_WITH_YOUR_OPENAI_CREDENTIAL_ID",
+                    "name": "OpenAI API"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Extract text answer from ChatGPT response ───────────────────────────────\nconst gptResponse = $input.first().json;\n\n// OpenAI node may return different formats\nconst answer =\n  gptResponse?.message?.content ||\n  gptResponse?.content ||\n  gptResponse?.text ||\n  gptResponse?.choices?.[0]?.message?.content ||\n  'Sorry, I could not generate an answer. Please try again.';\n\nreturn [{ json: { answer: answer.trim() } }];\n"
+            },
+            "id": "node_extract_answer",
+            "name": "Extract Answer",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ success: true, answer: $json.answer }) }}",
+                "options": {
+                    "responseCode": 200
+                }
+            },
+            "id": "node_respond_answer",
+            "name": "Respond — Answer",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1560,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ success: false, error: $execution.error ? $execution.error.message : 'Query failed' }) }}",
+                "options": {
+                    "responseCode": 500
+                }
+            },
+            "id": "node_respond_error",
+            "name": "Respond — Error",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1560,
+                480
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook — Receive Query": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Question",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Question": {
+            "main": [
+                [
+                    {
+                        "node": "Read Google Sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Google Sheet": {
+            "main": [
+                [
+                    {
+                        "node": "Format Sheet Data",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Format Sheet Data": {
+            "main": [
+                [
+                    {
+                        "node": "ChatGPT — Answer Query",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "ChatGPT — Answer Query": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Answer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Answer": {
+            "main": [
+                [
+                    {
+                        "node": "Respond — Answer",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveDataSuccessExecution": "all",
+        "saveDataErrorExecution": "all",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "tags": [
+        "oil-tracker"
+    ],
+    "pinData": {},
+    "versionId": "1",
+    "meta": {
+        "instanceId": "oil-tracker-query-v1"
+    }
+}

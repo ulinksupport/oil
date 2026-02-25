@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OIL Query Assistant | Off-in-Lieu Tracker</title>
+    <meta name="description" content="Ask the AI assistant about OIL hours, balances, and submission history." />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <div class="chat-wrapper">
+
+        <!-- Header -->
+        <header class="page-header" style="margin-bottom:20px">
+            <div class="badge">🤖 AI OIL Assistant</div>
+            <h1>OIL Query Assistant</h1>
+            <p>Ask me about OIL balances, submission history, or monthly summaries.</p>
+        </header>
+
+        <!-- Quick suggestions -->
+        <div class="suggestions" id="suggestions">
+            <button class="suggestion-chip" onclick="useSuggestion(this)">How many OIL hours does Alice have?</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this)">Show OIL summary for this month</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this)">List all pending submissions</button>
+            <button class="suggestion-chip" onclick="useSuggestion(this)">Who has the most OIL hours?</button>
+        </div>
+
+        <!-- Messages -->
+        <div class="chat-messages" id="chatMessages">
+            <div class="message assistant">
+                <div class="msg-avatar">🤖</div>
+                <div class="msg-bubble">
+                    Hello! I'm your OIL tracking assistant. I can look up OIL hour balances, list submissions, summarise
+                    records by staff member or month, and answer any questions about your team's Off-in-Lieu
+                    data.<br /><br />
+                    Try asking: <em>"How many OIL hours does [Staff Name] have?"</em>
+                </div>
+            </div>
+        </div>
+
+        <!-- Input area -->
+        <div class="chat-input-area">
+            <textarea id="chatInput" placeholder="Ask about OIL hours, balances, submissions…" rows="1"></textarea>
+            <button class="btn-send" id="sendBtn" title="Send" onclick="sendMessage()">
+                ➤
+            </button>
+        </div>
+
+        <p class="nav-link">
+            <a href="index.html">← Submit an OIL Claim</a>
+        </p>
+
+    </div>
+
+    <script src="chat.js"></script>
+
+</body>
+
+</html>

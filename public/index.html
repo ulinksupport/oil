@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OIL Claim Submission | Off-in-Lieu Tracker</title>
+  <meta name="description" content="Submit your Off-in-Lieu (OIL) claim — track extra hours worked and upload your approval evidence." />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Header -->
+    <header class="page-header">
+      <div class="badge">⏱ Off-in-Lieu Tracker</div>
+      <h1>Submit OIL Claim</h1>
+      <p>Fill in the form below to submit your Off-in-Lieu request. Attach your manager approval as evidence.</p>
+    </header>
+
+    <!-- Form Card -->
+    <div class="card">
+      <form id="oilForm" novalidate>
+
+        <!-- Section: Staff Info -->
+        <div class="card-section">
+          <div class="section-label">Staff Information</div>
+
+          <div class="form-group">
+            <label for="staffName">Staff Name <span class="required">*</span></label>
+            <input
+              type="text"
+              id="staffName"
+              name="staffName"
+              placeholder="e.g. Alice Tan"
+              required
+              autocomplete="name"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="dateApplied">Date Applied <span class="required">*</span></label>
+            <input
+              type="date"
+              id="dateApplied"
+              name="dateApplied"
+              required
+            />
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Section: OIL Details -->
+        <div class="card-section">
+          <div class="section-label">OIL Details</div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="oilDate">Date of Overtime Worked <span class="required">*</span></label>
+              <input
+                type="date"
+                id="oilDate"
+                name="oilDate"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="oilTime">Time of Overtime Worked <span class="required">*</span></label>
+              <input
+                type="time"
+                id="oilTime"
+                name="oilTime"
+                required
+              />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="oilHours">OIL Hours Claimed <span class="required">*</span></label>
+            <input
+              type="number"
+              id="oilHours"
+              name="oilHours"
+              placeholder="e.g. 2.5"
+              min="0.5"
+              max="24"
+              step="0.5"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="reason">Reason for OIL <span class="required">*</span></label>
+            <textarea
+              id="reason"
+              name="reason"
+              placeholder="Briefly describe why you worked overtime and what tasks were done…"
+              required
+            ></textarea>
+          </div>
+        </div>
+
+        <hr class="divider" />
+
+        <!-- Section: Approval Evidence -->
+        <div class="card-section">
+          <div class="section-label">Approval Evidence</div>
+
+          <div class="form-group">
+            <label for="approvalFile">Upload Approval Document <span class="required">*</span></label>
+            <div class="file-upload-area" id="uploadArea">
+              <input
+                type="file"
+                id="approvalFile"
+                name="approvalFile"
+                accept="image/*,.pdf"
+                required
+              />
+              <div class="file-upload-icon">📎</div>
+              <div class="file-upload-label">
+                Drag & drop or <span>browse files</span>
+              </div>
+              <div class="file-upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</div>
+            </div>
+            <div class="file-selected" id="fileSelected">
+              <span>✅</span>
+              <span id="fileName"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="btn-submit" id="submitBtn">
+          <span class="btn-icon">🚀</span> Submit OIL Claim
+        </button>
+
+        <!-- Status banner -->
+        <div class="status-banner" id="statusBanner">
+          <div class="spinner" id="statusSpinner" style="display:none"></div>
+          <span id="statusMessage"></span>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Nav -->
+    <p class="nav-link">
+      Management view? <a href="chat.html">Open OIL Query Assistant →</a>
+    </p>
+
+  </div>
+
+  <script>
+    // ── File upload UI ──────────────────────────────────────────────────────
+    const fileInput   = document.getElementById('approvalFile');
+    const uploadArea  = document.getElementById('uploadArea');
+    const fileSelected = document.getElementById('fileSelected');
+    const fileNameEl  = document.getElementById('fileName');
+
+    fileInput.addEventListener('change', () => {
+      const f = fileInput.files[0];
+      if (f) {
+        fileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+        fileSelected.classList.add('show');
+      } else {
+        fileSelected.classList.remove('show');
+      }
+    });
+
+    // Drag-over styling
+    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop', () => uploadArea.classList.remove('drag-over'));
+
+    // ── Status helper ───────────────────────────────────────────────────────
+    const statusBanner  = document.getElementById('statusBanner');
+    const statusMessage = document.getElementById('statusMessage');
+    const statusSpinner = document.getElementById('statusSpinner');
+    const submitBtn     = document.getElementById('submitBtn');
+
+    function showStatus(type, msg) {
+      statusBanner.className = 'status-banner show ' + type;
+      statusMessage.textContent = msg;
+      statusSpinner.style.display = type === 'loading' ? 'block' : 'none';
+    }
+
+    function hideStatus() {
+      statusBanner.className = 'status-banner';
+    }
+
+    // ── Form submission ─────────────────────────────────────────────────────
+    document.getElementById('oilForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+
+      // Client-side validation
+      const staffName  = document.getElementById('staffName').value.trim();
+      const dateApplied = document.getElementById('dateApplied').value;
+      const oilDate    = document.getElementById('oilDate').value;
+      const oilTime    = document.getElementById('oilTime').value;
+      const oilHours   = document.getElementById('oilHours').value;
+      const reason     = document.getElementById('reason').value.trim();
+      const file       = fileInput.files[0];
+
+      if (!staffName || !dateApplied || !oilDate || !oilTime || !oilHours || !reason) {
+        showStatus('error', '⚠ Please fill in all required fields.');
+        return;
+      }
+
+      if (!file) {
+        showStatus('error', '⚠ Please upload your approval evidence file.');
+        return;
+      }
+
+      const allowedTypes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        showStatus('error', '⚠ Only image files (JPG, PNG, GIF, WEBP) or PDF are accepted.');
+        return;
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        showStatus('error', '⚠ File size must be under 10 MB.');
+        return;
+      }
+
+      // Submit
+      submitBtn.disabled = true;
+      showStatus('loading', 'Submitting your OIL claim, please wait…');
+
+      try {
+        const formData = new FormData();
+        formData.append('staffName',   staffName);
+        formData.append('dateApplied', dateApplied);
+        formData.append('oilDate',     oilDate);
+        formData.append('oilTime',     oilTime);
+        formData.append('oilHours',    oilHours);
+        formData.append('reason',      reason);
+        formData.append('approvalFile', file);
+
+        const res = await fetch('/submit', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showStatus('success', '✅ OIL claim submitted successfully! It has been recorded in the tracker.');
+          document.getElementById('oilForm').reset();
+          fileSelected.classList.remove('show');
+        } else {
+          showStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+        }
+      } catch (err) {
+        showStatus('error', '❌ Network error. Please check your connection and try again.');
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+
+    // Set default date to today
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('dateApplied').value = today;
+  </script>
+
+</body>
+</html>

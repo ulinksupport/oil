@@ -1,0 +1,255 @@
+{
+    "name": "OIL Tracker — Submission Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "oil-submit",
+                "responseMode": "responseNode",
+                "options": {
+                    "rawBody": false
+                }
+            },
+            "id": "node_webhook_submit",
+            "name": "Webhook — Receive OIL Form",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "oil-submit"
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Validate required fields ────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'dateApplied', 'oilDate', 'oilTime', 'oilHours', 'reason'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst hours = parseFloat(body.oilHours);\nif (isNaN(hours) || hours <= 0 || hours > 24) {\n  throw new Error('OIL hours must be a number between 0.5 and 24.');\n}\n\n// Build clean record\nconst staffName   = body.staffName.trim();\nconst dateApplied = body.dateApplied;\nconst oilDate     = body.oilDate;\nconst oilTime     = body.oilTime;\nconst oilHours    = hours;\nconst reason      = body.reason.trim();\nconst submittedAt = new Date().toISOString();\n\nreturn [{\n  json: {\n    staffName,\n    dateApplied,\n    oilDate,\n    oilTime,\n    oilHours,\n    reason,\n    submittedAt,\n    validationStatus: 'Pending'\n  },\n  binary: $input.first().binary\n}];\n"
+            },
+            "id": "node_validate_fields",
+            "name": "Validate Fields",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Validate uploaded file ───────────────────────────────────────────────────\nconst binary = $input.first().binary;\n\nif (!binary || !binary.approvalFile) {\n  throw new Error('Approval file is missing from the submission.');\n}\n\nconst file     = binary.approvalFile;\nconst mimeType = file.mimeType || '';\nconst fileName = file.fileName || 'unknown';\nconst allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];\n\nif (!allowed.includes(mimeType)) {\n  throw new Error(`Invalid file type: ${mimeType}. Only JPG, PNG, GIF, WEBP, or PDF files are accepted.`);\n}\n\nconst ext = mimeType === 'application/pdf' ? 'pdf'\n  : mimeType === 'image/png'  ? 'png'\n  : mimeType === 'image/gif'  ? 'gif'\n  : mimeType === 'image/webp' ? 'webp'\n  : 'jpg';\n\n// Build structured Drive filename: StaffName_DateApplied_OILHours_Approval.ext\nconst data = $input.first().json;\nconst safeName   = data.staffName.replace(/[^a-zA-Z0-9]/g, '_');\nconst safeDate   = data.dateApplied.replace(/-/g, '-');\nconst safeHours  = data.oilHours.toString().replace('.', 'p');\nconst driveFileName = `${safeName}_${safeDate}_${safeHours}h_Approval.${ext}`;\n\n// Folder path: OIL Evidence/YYYY-MM\nconst monthFolder = data.dateApplied.substring(0, 7); // e.g. 2026-02\n\nreturn [{\n  json: { ...data, driveFileName, monthFolder, fileExt: ext },\n  binary\n}];\n"
+            },
+            "id": "node_validate_file",
+            "name": "Validate File Type & Name",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                680,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "upload",
+                "name": "={{ $json.driveFileName }}",
+                "driveId": {
+                    "mode": "list",
+                    "value": "My Drive"
+                },
+                "folderId": {
+                    "mode": "list",
+                    "value": "={{ $json.monthFolder }}"
+                },
+                "binaryData": true,
+                "binaryPropertyName": "approvalFile",
+                "options": {}
+            },
+            "id": "node_drive_upload",
+            "name": "Upload to Google Drive",
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                900,
+                300
+            ],
+            "credentials": {
+                "googleDriveOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Drive OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Extract Drive file link from upload response ─────────────────────────────\nconst driveData = $input.first().json;\n\n// Google Drive node returns id and webViewLink\nconst fileId   = driveData.id || driveData.fileId || '';\nconst fileLink = driveData.webViewLink\n  || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\n\nconst prevData = $('Validate File Type & Name').first().json;\n\nreturn [{\n  json: {\n    ...prevData,\n    driveFileId:   fileId,\n    approvalFileLink: fileLink\n  }\n}];\n"
+            },
+            "id": "node_extract_link",
+            "name": "Extract Drive Link",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "OIL_Tracker"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "value": {
+                        "Staff Name": "={{ $json.staffName }}",
+                        "Date Applied": "={{ $json.dateApplied }}",
+                        "OIL Date Worked": "={{ $json.oilDate }}",
+                        "OIL Time Worked": "={{ $json.oilTime }}",
+                        "OIL Hours": "={{ $json.oilHours }}",
+                        "Reason": "={{ $json.reason }}",
+                        "Approval File Link": "={{ $json.approvalFileLink }}",
+                        "Validation Status": "={{ $json.validationStatus }}",
+                        "Submitted At": "={{ $json.submittedAt }}"
+                    }
+                },
+                "options": {}
+            },
+            "id": "node_sheets_append",
+            "name": "Append Row to Google Sheet",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                1340,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets OAuth2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ success: true, message: 'OIL claim submitted and recorded successfully.', staffName: $('Extract Drive Link').first().json.staffName, oilHours: $('Extract Drive Link').first().json.oilHours }) }}",
+                "options": {
+                    "responseCode": 200
+                }
+            },
+            "id": "node_respond_success",
+            "name": "Respond — Success",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1560,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ success: false, error: $execution.error ? $execution.error.message : 'Unknown error' }) }}",
+                "options": {
+                    "responseCode": 422
+                }
+            },
+            "id": "node_respond_error",
+            "name": "Respond — Error",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1560,
+                480
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook — Receive OIL Form": {
+            "main": [
+                [
+                    {
+                        "node": "Validate Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate Fields": {
+            "main": [
+                [
+                    {
+                        "node": "Validate File Type & Name",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate File Type & Name": {
+            "main": [
+                [
+                    {
+                        "node": "Upload to Google Drive",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Upload to Google Drive": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Drive Link",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Drive Link": {
+            "main": [
+                [
+                    {
+                        "node": "Append Row to Google Sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Append Row to Google Sheet": {
+            "main": [
+                [
+                    {
+                        "node": "Respond — Success",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "errorWorkflow": "",
+        "saveDataSuccessExecution": "all",
+        "saveDataErrorExecution": "all",
+        "saveManualExecutions": true,
+        "callerPolicy": "workflowsFromSameOwner"
+    },
+    "staticData": null,
+    "tags": [
+        "oil-tracker"
+    ],
+    "pinData": {},
+    "versionId": "1",
+    "meta": {
+        "instanceId": "oil-tracker-submission-v1"
+    }
+}
