@@ -30,11 +30,19 @@ const upload = multer({
 // Receives OIL form data + file, forwards multipart to n8n webhook
 app.post('/submit', upload.single('approvalFile'), async (req, res) => {
     try {
-        // Validate required text fields
-        const required = ['staffName', 'dateApplied', 'oilDate', 'oilTime', 'oilHours', 'reason'];
+        // Validate required text fields (oilTimeFrom/oilTimeTo are optional — only required for partial days)
+        const required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];
         for (const field of required) {
             if (!req.body[field] || !req.body[field].toString().trim()) {
                 return res.status(400).json({ success: false, error: `Missing required field: ${field}` });
+            }
+        }
+
+        // If hours < 10 (partial day), From/To times are required
+        const oilHoursVal = parseFloat(req.body.oilHours);
+        if (!isNaN(oilHoursVal) && oilHoursVal < 10) {
+            if (!req.body.oilTimeFrom || !req.body.oilTimeTo) {
+                return res.status(400).json({ success: false, error: 'OIL From Time and To Time are required for partial day claims.' });
             }
         }
 
@@ -44,12 +52,13 @@ app.post('/submit', upload.single('approvalFile'), async (req, res) => {
 
         // Build multipart form for n8n
         const form = new FormData();
-        form.append('staffName', req.body.staffName.trim());
+        form.append('staffName',   req.body.staffName.trim());
         form.append('dateApplied', req.body.dateApplied);
-        form.append('oilDate', req.body.oilDate);
-        form.append('oilTime', req.body.oilTime);
-        form.append('oilHours', req.body.oilHours);
-        form.append('reason', req.body.reason.trim());
+        form.append('oilDate',     req.body.oilDate);
+        form.append('oilHours',    req.body.oilHours);
+        form.append('oilTimeFrom', req.body.oilTimeFrom || '');
+        form.append('oilTimeTo',   req.body.oilTimeTo   || '');
+        form.append('reason',      req.body.reason.trim());
         form.append('approvalFile', req.file.buffer, {
             filename: req.file.originalname,
             contentType: req.file.mimetype

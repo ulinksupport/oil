@@ -22,7 +22,7 @@
         },
         {
             "parameters": {
-                "jsCode": "// ── Validate required fields ────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'dateApplied', 'oilDate', 'oilTime', 'oilHours', 'reason'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst hours = parseFloat(body.oilHours);\nif (isNaN(hours) || hours <= 0 || hours > 24) {\n  throw new Error('OIL hours must be a number between 0.5 and 24.');\n}\n\n// Build clean record\nconst staffName   = body.staffName.trim();\nconst dateApplied = body.dateApplied;\nconst oilDate     = body.oilDate;\nconst oilTime     = body.oilTime;\nconst oilHours    = hours;\nconst reason      = body.reason.trim();\nconst submittedAt = new Date().toISOString();\n\nreturn [{\n  json: {\n    staffName,\n    dateApplied,\n    oilDate,\n    oilTime,\n    oilHours,\n    reason,\n    submittedAt,\n    validationStatus: 'Pending'\n  },\n  binary: $input.first().binary\n}];\n"
+                "jsCode": "// ── Validate required fields ────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst hours = parseFloat(body.oilHours);\nif (isNaN(hours) || hours <= 0 || hours > 24) {\n  throw new Error('OIL hours must be a number between 0.5 and 24.');\n}\n\n// If partial day (< 10 hours), From/To times are required\nif (hours < 10) {\n  if (!body.oilTimeFrom || !body.oilTimeTo) {\n    throw new Error('OIL From Time and To Time are required for partial day claims (less than 10 hours).');\n  }\n}\n\n// Build clean record\nconst staffName    = body.staffName.trim();\nconst dateApplied  = body.dateApplied;\nconst oilDate      = body.oilDate;\nconst oilHours     = hours;\nconst oilTimeFrom  = hours >= 10 ? 'Full Day' : (body.oilTimeFrom || '');\nconst oilTimeTo    = hours >= 10 ? 'Full Day' : (body.oilTimeTo   || '');\nconst reason       = body.reason.trim();\nconst submittedAt  = new Date().toISOString();\n\nreturn [{\n  json: {\n    staffName,\n    dateApplied,\n    oilDate,\n    oilHours,\n    oilTimeFrom,\n    oilTimeTo,\n    reason,\n    submittedAt,\n    validationStatus: 'Pending'\n  },\n  binary: $input.first().binary\n}];\n"
             },
             "id": "node_validate_fields",
             "name": "Validate Fields",
@@ -35,7 +35,7 @@
         },
         {
             "parameters": {
-                "jsCode": "// ── Validate uploaded file ───────────────────────────────────────────────────\nconst binary = $input.first().binary;\n\nif (!binary || !binary.approvalFile) {\n  throw new Error('Approval file is missing from the submission.');\n}\n\nconst file     = binary.approvalFile;\nconst mimeType = file.mimeType || '';\nconst fileName = file.fileName || 'unknown';\nconst allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];\n\nif (!allowed.includes(mimeType)) {\n  throw new Error(`Invalid file type: ${mimeType}. Only JPG, PNG, GIF, WEBP, or PDF files are accepted.`);\n}\n\nconst ext = mimeType === 'application/pdf' ? 'pdf'\n  : mimeType === 'image/png'  ? 'png'\n  : mimeType === 'image/gif'  ? 'gif'\n  : mimeType === 'image/webp' ? 'webp'\n  : 'jpg';\n\n// Build structured Drive filename: StaffName_DateApplied_OILHours_Approval.ext\nconst data = $input.first().json;\nconst safeName   = data.staffName.replace(/[^a-zA-Z0-9]/g, '_');\nconst safeDate   = data.dateApplied.replace(/-/g, '-');\nconst safeHours  = data.oilHours.toString().replace('.', 'p');\nconst driveFileName = `${safeName}_${safeDate}_${safeHours}h_Approval.${ext}`;\n\n// Folder path: OIL Evidence/YYYY-MM\nconst monthFolder = data.dateApplied.substring(0, 7); // e.g. 2026-02\n\nreturn [{\n  json: { ...data, driveFileName, monthFolder, fileExt: ext },\n  binary\n}];\n"
+                "jsCode": "// ── Validate uploaded file ───────────────────────────────────────────────────\nconst binary = $input.first().binary;\n\nif (!binary || !binary.approvalFile) {\n  throw new Error('Approval file is missing from the submission.');\n}\n\nconst file     = binary.approvalFile;\nconst mimeType = file.mimeType || '';\nconst allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];\n\nif (!allowed.includes(mimeType)) {\n  throw new Error(`Invalid file type: ${mimeType}. Only JPG, PNG, GIF, WEBP, or PDF files are accepted.`);\n}\n\nconst ext = mimeType === 'application/pdf' ? 'pdf'\n  : mimeType === 'image/png'  ? 'png'\n  : mimeType === 'image/gif'  ? 'gif'\n  : mimeType === 'image/webp' ? 'webp'\n  : 'jpg';\n\n// Build Drive filename: StaffName_DateApplied_OILHours_Approval.ext\nconst data = $input.first().json;\nconst safeName      = data.staffName.replace(/[^a-zA-Z0-9]/g, '_');\nconst safeDate      = data.dateApplied.replace(/-/g, '-');\nconst safeHours     = data.oilHours.toString().replace('.', 'p');\nconst driveFileName = `${safeName}_${safeDate}_${safeHours}h_Approval.${ext}`;\nconst monthFolder   = data.dateApplied.substring(0, 7);\n\nreturn [{\n  json: { ...data, driveFileName, monthFolder, fileExt: ext },\n  binary\n}];\n"
             },
             "id": "node_validate_file",
             "name": "Validate File Type & Name",
@@ -58,8 +58,7 @@
                     "mode": "list",
                     "value": "={{ $json.monthFolder }}"
                 },
-                "binaryData": true,
-                "binaryPropertyName": "approvalFile",
+                "inputDataFieldName": "approvalFile",
                 "options": {}
             },
             "id": "node_drive_upload",
@@ -73,13 +72,13 @@
             "credentials": {
                 "googleDriveOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
-                    "name": "Google Drive OAuth2"
+                    "name": "Google Drive account 3"
                 }
             }
         },
         {
             "parameters": {
-                "jsCode": "// ── Extract Drive file link from upload response ─────────────────────────────\nconst driveData = $input.first().json;\n\n// Google Drive node returns id and webViewLink\nconst fileId   = driveData.id || driveData.fileId || '';\nconst fileLink = driveData.webViewLink\n  || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\n\nconst prevData = $('Validate File Type & Name').first().json;\n\nreturn [{\n  json: {\n    ...prevData,\n    driveFileId:   fileId,\n    approvalFileLink: fileLink\n  }\n}];\n"
+                "jsCode": "// ── Extract Drive file link from upload response ─────────────────────────────\nconst driveData = $input.first().json;\n\nconst fileId   = driveData.id || driveData.fileId || '';\nconst fileLink = driveData.webViewLink\n  || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\n\nconst prevData = $('Validate File Type & Name').first().json;\n\nreturn [{\n  json: {\n    ...prevData,\n    driveFileId: fileId,\n    approvalFileLink: fileLink\n  }\n}];\n"
             },
             "id": "node_extract_link",
             "name": "Extract Drive Link",
@@ -99,16 +98,17 @@
                 },
                 "sheetName": {
                     "mode": "list",
-                    "value": "OIL_Tracker"
+                    "value": "Sheet1"
                 },
                 "columns": {
                     "mappingMode": "defineBelow",
                     "value": {
                         "Staff Name": "={{ $json.staffName }}",
                         "Date Applied": "={{ $json.dateApplied }}",
-                        "OIL Date Worked": "={{ $json.oilDate }}",
-                        "OIL Time Worked": "={{ $json.oilTime }}",
+                        "OIL Date": "={{ $json.oilDate }}",
                         "OIL Hours": "={{ $json.oilHours }}",
+                        "OIL From Time": "={{ $json.oilTimeFrom }}",
+                        "OIL To Time": "={{ $json.oilTimeTo }}",
                         "Reason": "={{ $json.reason }}",
                         "Approval File Link": "={{ $json.approvalFileLink }}",
                         "Validation Status": "={{ $json.validationStatus }}",
@@ -128,7 +128,7 @@
             "credentials": {
                 "googleSheetsOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
-                    "name": "Google Sheets OAuth2"
+                    "name": "Google Sheets account 2"
                 }
             }
         },
@@ -237,19 +237,16 @@
     },
     "settings": {
         "executionOrder": "v1",
-        "errorWorkflow": "",
         "saveDataSuccessExecution": "all",
         "saveDataErrorExecution": "all",
-        "saveManualExecutions": true,
-        "callerPolicy": "workflowsFromSameOwner"
+        "saveManualExecutions": true
     },
     "staticData": null,
     "tags": [
         "oil-tracker"
     ],
     "pinData": {},
-    "versionId": "1",
     "meta": {
-        "instanceId": "oil-tracker-submission-v1"
+        "instanceId": "oil-tracker-submission-v2"
     }
 }
