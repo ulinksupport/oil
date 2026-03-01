@@ -164,16 +164,21 @@
       showStatus('loading', 'Submitting your OIL claim, please wait…');
 
       try {
-        const formData = new FormData();
-        formData.append('staffName', staffName);
-        formData.append('dateApplied', dateApplied);
-        formData.append('oilDate', oilDate);
-        formData.append('oilHours', oilHours);
-        formData.append('oilTimeFrom', isPartDay ? oilTimeFrom.value : '');
-        formData.append('oilTimeTo', isPartDay ? oilTimeTo.value : '');
-        formData.append('reason', reason);
+        const payload = {
+          staffName,
+          dateApplied,
+          oilDate,
+          oilHours,
+          oilTimeFrom: isPartDay ? oilTimeFrom.value : '',
+          oilTimeTo: isPartDay ? oilTimeTo.value : '',
+          reason
+        };
 
-        const res = await fetch('/submit', { method: 'POST', body: formData });
+        const res = await fetch('/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
         const data = await res.json();
 
         if (res.ok && data.success) {
