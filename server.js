@@ -1,8 +1,6 @@
 require('dotenv').config();
 const express = require('express');
-const multer = require('multer');
 const axios = require('axios');
-const FormData = require('form-data');
 const path = require('path');
 
 const app = express();
@@ -10,27 +8,13 @@ const PORT = process.env.PORT || 3000;
 
 // ── Middleware ───────────────────────────────────────────────────────────────
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Multer: store file in memory (max 10 MB)
-const upload = multer({
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (req, file, cb) => {
-        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-        if (allowed.includes(file.mimetype)) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only image files (JPG, PNG, GIF, WEBP) or PDF are accepted.'));
-        }
-    }
-});
-
 // ── POST /submit ─────────────────────────────────────────────────────────────
-// Receives OIL form data + file, forwards multipart to n8n webhook
-app.post('/submit', upload.single('approvalFile'), async (req, res) => {
+app.post('/submit', async (req, res) => {
     try {
-        // Validate required text fields (oilTimeFrom/oilTimeTo are optional — only required for partial days)
+        // Validate required fields
         const required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];
         for (const field of required) {
             if (!req.body[field] || !req.body[field].toString().trim()) {
@@ -38,7 +22,7 @@ app.post('/submit', upload.single('approvalFile'), async (req, res) => {
             }
         }
 
-        // If hours < 10 (partial day), From/To times are required
+        // If partial day (< 10 hours), From/To times are required
         const oilHoursVal = parseFloat(req.body.oilHours);
         if (!isNaN(oilHoursVal) && oilHoursVal < 10) {
             if (!req.body.oilTimeFrom || !req.body.oilTimeTo) {
@@ -46,35 +30,27 @@ app.post('/submit', upload.single('approvalFile'), async (req, res) => {
             }
         }
 
-        if (!req.file) {
-            return res.status(400).json({ success: false, error: 'Approval evidence file is required.' });
-        }
-
-        // Build multipart form for n8n
-        const form = new FormData();
-        form.append('staffName',   req.body.staffName.trim());
-        form.append('dateApplied', req.body.dateApplied);
-        form.append('oilDate',     req.body.oilDate);
-        form.append('oilHours',    req.body.oilHours);
-        form.append('oilTimeFrom', req.body.oilTimeFrom || '');
-        form.append('oilTimeTo',   req.body.oilTimeTo   || '');
-        form.append('reason',      req.body.reason.trim());
-        form.append('approvalFile', req.file.buffer, {
-            filename: req.file.originalname,
-            contentType: req.file.mimetype
-        });
-
         const webhookUrl = process.env.N8N_SUBMISSION_WEBHOOK;
         if (!webhookUrl) {
             return res.status(500).json({ success: false, error: 'Server configuration error: N8N_SUBMISSION_WEBHOOK not set.' });
         }
 
-        const n8nRes = await axios.post(webhookUrl, form, {
-            headers: form.getHeaders(),
+        // Send JSON payload to n8n
+        const payload = {
+            staffName: req.body.staffName.trim(),
+            dateApplied: req.body.dateApplied,
+            oilDate: req.body.oilDate,
+            oilHours: req.body.oilHours,
+            oilTimeFrom: req.body.oilTimeFrom || '',
+            oilTimeTo: req.body.oilTimeTo || '',
+            reason: req.body.reason.trim()
+        };
+
+        const n8nRes = await axios.post(webhookUrl, payload, {
+            headers: { 'Content-Type': 'application/json' },
             timeout: 30000
         });
 
-        // n8n should return { success: true, message: '...' }
         if (n8nRes.data && n8nRes.data.success === false) {
             return res.status(422).json({ success: false, error: n8nRes.data.error || 'Validation failed in workflow.' });
         }
@@ -83,18 +59,11 @@ app.post('/submit', upload.single('approvalFile'), async (req, res) => {
 
     } catch (err) {
         console.error('[/submit error]', err.message);
-
-        // Multer file type error
-        if (err.message && err.message.includes('Only image')) {
-            return res.status(400).json({ success: false, error: err.message });
-        }
-
         return res.status(500).json({ success: false, error: 'Submission failed. Please try again.' });
     }
 });
 
 // ── POST /query ──────────────────────────────────────────────────────────────
-// Proxies AI OIL query to n8n → ChatGPT
 app.post('/query', async (req, res) => {
     try {
         const { question } = req.body;

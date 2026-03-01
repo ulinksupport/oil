@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>OIL Claim Submission | Off-in-Lieu Tracker</title>
-  <meta name="description" content="Submit your Off-in-Lieu (OIL) claim — track extra hours worked and upload your approval evidence." />
+  <meta name="description"
+    content="Submit your Off-in-Lieu (OIL) claim — track extra hours worked and upload your approval evidence." />
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
 
   <div class="container">
@@ -15,7 +18,7 @@
     <header class="page-header">
       <div class="badge">⏱ Off-in-Lieu Tracker</div>
       <h1>Submit OIL Claim</h1>
-      <p>Fill in the form below to submit your Off-in-Lieu request. Attach your manager approval as evidence.</p>
+      <p>Fill in the form below to submit your Off-in-Lieu request. Your manager will review and approve directly.</p>
     </header>
 
     <!-- Form Card -->
@@ -28,24 +31,13 @@
 
           <div class="form-group">
             <label for="staffName">Staff Name <span class="required">*</span></label>
-            <input
-              type="text"
-              id="staffName"
-              name="staffName"
-              placeholder="e.g. Alice Tan"
-              required
-              autocomplete="name"
-            />
+            <input type="text" id="staffName" name="staffName" placeholder="e.g. Alice Tan" required
+              autocomplete="name" />
           </div>
 
           <div class="form-group">
             <label for="dateApplied">Date Applied <span class="required">*</span></label>
-            <input
-              type="date"
-              id="dateApplied"
-              name="dateApplied"
-              required
-            />
+            <input type="date" id="dateApplied" name="dateApplied" required />
           </div>
         </div>
 
@@ -57,26 +49,13 @@
 
           <div class="form-group">
             <label for="oilDate">Date of OIL <span class="required">*</span></label>
-            <input
-              type="date"
-              id="oilDate"
-              name="oilDate"
-              required
-            />
+            <input type="date" id="oilDate" name="oilDate" required />
           </div>
 
           <div class="form-group">
             <label for="oilHours">OIL Hours Claimed <span class="required">*</span></label>
-            <input
-              type="number"
-              id="oilHours"
-              name="oilHours"
-              placeholder="e.g. 10 for a full day, 5 for half day"
-              min="0.5"
-              max="24"
-              step="0.5"
-              required
-            />
+            <input type="number" id="oilHours" name="oilHours" placeholder="e.g. 10 for a full day, 5 for half day"
+              min="0.5" max="24" step="0.5" required />
             <small class="field-hint">💡 1 full day = 10 hours. Enter the total hours you are claiming.</small>
           </div>
 
@@ -84,19 +63,11 @@
           <div class="form-row" id="timeRangeRow" style="display:none">
             <div class="form-group">
               <label for="oilTimeFrom">OIL From Time <span class="required">*</span></label>
-              <input
-                type="time"
-                id="oilTimeFrom"
-                name="oilTimeFrom"
-              />
+              <input type="time" id="oilTimeFrom" name="oilTimeFrom" />
             </div>
             <div class="form-group">
               <label for="oilTimeTo">OIL To Time <span class="required">*</span></label>
-              <input
-                type="time"
-                id="oilTimeTo"
-                name="oilTimeTo"
-              />
+              <input type="time" id="oilTimeTo" name="oilTimeTo" />
             </div>
           </div>
           <small class="field-hint" id="timeRangeHint" style="display:none; margin-top:-8px; margin-bottom:12px;">
@@ -105,43 +76,11 @@
 
           <div class="form-group">
             <label for="reason">Reason for OIL <span class="required">*</span></label>
-            <textarea
-              id="reason"
-              name="reason"
-              placeholder="Briefly describe why you worked overtime and what tasks were done…"
-              required
-            ></textarea>
+            <textarea id="reason" name="reason"
+              placeholder="Briefly describe why you worked overtime and what tasks were done…" required></textarea>
           </div>
         </div>
 
-        <hr class="divider" />
-
-        <!-- Section: Approval Evidence -->
-        <div class="card-section">
-          <div class="section-label">Approval Evidence</div>
-
-          <div class="form-group">
-            <label for="approvalFile">Upload Approval Document <span class="required">*</span></label>
-            <div class="file-upload-area" id="uploadArea">
-              <input
-                type="file"
-                id="approvalFile"
-                name="approvalFile"
-                accept="image/*,.pdf"
-                required
-              />
-              <div class="file-upload-icon">📎</div>
-              <div class="file-upload-label">
-                Drag &amp; drop or <span>browse files</span>
-              </div>
-              <div class="file-upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</div>
-            </div>
-            <div class="file-selected" id="fileSelected">
-              <span>✅</span>
-              <span id="fileName"></span>
-            </div>
-          </div>
-        </div>
 
         <!-- Submit -->
         <button type="submit" class="btn-submit" id="submitBtn">
@@ -165,49 +104,29 @@
   </div>
 
   <script>
-    // ── File upload UI ──────────────────────────────────────────────────────
-    const fileInput    = document.getElementById('approvalFile');
-    const uploadArea   = document.getElementById('uploadArea');
-    const fileSelected = document.getElementById('fileSelected');
-    const fileNameEl   = document.getElementById('fileName');
-
-    fileInput.addEventListener('change', () => {
-      const f = fileInput.files[0];
-      if (f) {
-        fileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
-        fileSelected.classList.add('show');
-      } else {
-        fileSelected.classList.remove('show');
-      }
-    });
-
-    uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
-    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
-    uploadArea.addEventListener('drop', () => uploadArea.classList.remove('drag-over'));
-
     // ── Conditional From/To time fields ────────────────────────────────────
-    const oilHoursInput  = document.getElementById('oilHours');
-    const timeRangeRow   = document.getElementById('timeRangeRow');
-    const timeRangeHint  = document.getElementById('timeRangeHint');
-    const oilTimeFrom    = document.getElementById('oilTimeFrom');
-    const oilTimeTo      = document.getElementById('oilTimeTo');
+    const oilHoursInput = document.getElementById('oilHours');
+    const timeRangeRow = document.getElementById('timeRangeRow');
+    const timeRangeHint = document.getElementById('timeRangeHint');
+    const oilTimeFrom = document.getElementById('oilTimeFrom');
+    const oilTimeTo = document.getElementById('oilTimeTo');
 
     function toggleTimeFields() {
       const hours = parseFloat(oilHoursInput.value);
       const showTime = !isNaN(hours) && hours < 10;
-      timeRangeRow.style.display  = showTime ? 'flex' : 'none';
+      timeRangeRow.style.display = showTime ? 'flex' : 'none';
       timeRangeHint.style.display = showTime ? 'block' : 'none';
       oilTimeFrom.required = showTime;
-      oilTimeTo.required   = showTime;
+      oilTimeTo.required = showTime;
     }
 
     oilHoursInput.addEventListener('input', toggleTimeFields);
 
     // ── Status helper ───────────────────────────────────────────────────────
-    const statusBanner  = document.getElementById('statusBanner');
+    const statusBanner = document.getElementById('statusBanner');
     const statusMessage = document.getElementById('statusMessage');
     const statusSpinner = document.getElementById('statusSpinner');
-    const submitBtn     = document.getElementById('submitBtn');
+    const submitBtn = document.getElementById('submitBtn');
 
     function showStatus(type, msg) {
       statusBanner.className = 'status-banner show ' + type;
@@ -220,17 +139,16 @@
     }
 
     // ── Form submission ─────────────────────────────────────────────────────
-    document.getElementById('oilForm').addEventListener('submit', async function(e) {
+    document.getElementById('oilForm').addEventListener('submit', async function (e) {
       e.preventDefault();
 
-      const staffName   = document.getElementById('staffName').value.trim();
+      const staffName = document.getElementById('staffName').value.trim();
       const dateApplied = document.getElementById('dateApplied').value;
-      const oilDate     = document.getElementById('oilDate').value;
-      const oilHours    = document.getElementById('oilHours').value;
-      const reason      = document.getElementById('reason').value.trim();
-      const file        = fileInput.files[0];
-      const hours       = parseFloat(oilHours);
-      const isPartDay   = !isNaN(hours) && hours < 10;
+      const oilDate = document.getElementById('oilDate').value;
+      const oilHours = document.getElementById('oilHours').value;
+      const reason = document.getElementById('reason').value.trim();
+      const hours = parseFloat(oilHours);
+      const isPartDay = !isNaN(hours) && hours < 10;
 
       if (!staffName || !dateApplied || !oilDate || !oilHours || !reason) {
         showStatus('error', '⚠ Please fill in all required fields.');
@@ -242,44 +160,26 @@
         return;
       }
 
-      if (!file) {
-        showStatus('error', '⚠ Please upload your approval evidence file.');
-        return;
-      }
-
-      const allowedTypes = ['image/jpeg','image/png','image/gif','image/webp','application/pdf'];
-      if (!allowedTypes.includes(file.type)) {
-        showStatus('error', '⚠ Only image files (JPG, PNG, GIF, WEBP) or PDF are accepted.');
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) {
-        showStatus('error', '⚠ File size must be under 10 MB.');
-        return;
-      }
-
       submitBtn.disabled = true;
       showStatus('loading', 'Submitting your OIL claim, please wait…');
 
       try {
         const formData = new FormData();
-        formData.append('staffName',    staffName);
-        formData.append('dateApplied',  dateApplied);
-        formData.append('oilDate',      oilDate);
-        formData.append('oilHours',     oilHours);
-        formData.append('oilTimeFrom',  isPartDay ? oilTimeFrom.value : '');
-        formData.append('oilTimeTo',    isPartDay ? oilTimeTo.value   : '');
-        formData.append('reason',       reason);
-        formData.append('approvalFile', file);
+        formData.append('staffName', staffName);
+        formData.append('dateApplied', dateApplied);
+        formData.append('oilDate', oilDate);
+        formData.append('oilHours', oilHours);
+        formData.append('oilTimeFrom', isPartDay ? oilTimeFrom.value : '');
+        formData.append('oilTimeTo', isPartDay ? oilTimeTo.value : '');
+        formData.append('reason', reason);
 
-        const res  = await fetch('/submit', { method: 'POST', body: formData });
+        const res = await fetch('/submit', { method: 'POST', body: formData });
         const data = await res.json();
 
         if (res.ok && data.success) {
-          showStatus('success', '✅ OIL claim submitted successfully! It has been recorded in the tracker.');
+          showStatus('success', '✅ OIL claim submitted successfully! Your manager has been notified for approval.');
           document.getElementById('oilForm').reset();
-          fileSelected.classList.remove('show');
-          timeRangeRow.style.display  = 'none';
+          timeRangeRow.style.display = 'none';
           timeRangeHint.style.display = 'none';
         } else {
           showStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
@@ -297,4 +197,5 @@
   </script>
 
 </body>
+
 </html>

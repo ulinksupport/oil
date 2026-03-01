@@ -6,9 +6,7 @@
                 "httpMethod": "POST",
                 "path": "oil-submit",
                 "responseMode": "responseNode",
-                "options": {
-                    "rawBody": false
-                }
+                "options": {}
             },
             "id": "node_webhook_submit",
             "name": "Webhook — Receive OIL Form",
@@ -22,7 +20,7 @@
         },
         {
             "parameters": {
-                "jsCode": "// ── Validate required fields ────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst hours = parseFloat(body.oilHours);\nif (isNaN(hours) || hours <= 0 || hours > 24) {\n  throw new Error('OIL hours must be a number between 0.5 and 24.');\n}\n\n// If partial day (< 10 hours), From/To times are required\nif (hours < 10) {\n  if (!body.oilTimeFrom || !body.oilTimeTo) {\n    throw new Error('OIL From Time and To Time are required for partial day claims (less than 10 hours).');\n  }\n}\n\n// Build clean record\nconst staffName    = body.staffName.trim();\nconst dateApplied  = body.dateApplied;\nconst oilDate      = body.oilDate;\nconst oilHours     = hours;\nconst oilTimeFrom  = hours >= 10 ? 'Full Day' : (body.oilTimeFrom || '');\nconst oilTimeTo    = hours >= 10 ? 'Full Day' : (body.oilTimeTo   || '');\nconst reason       = body.reason.trim();\nconst submittedAt  = new Date().toISOString();\n\nreturn [{\n  json: {\n    staffName,\n    dateApplied,\n    oilDate,\n    oilHours,\n    oilTimeFrom,\n    oilTimeTo,\n    reason,\n    submittedAt,\n    validationStatus: 'Pending'\n  },\n  binary: $input.first().binary\n}];\n"
+                "jsCode": "// ── Validate and format fields ───────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst hours = parseFloat(body.oilHours);\nif (isNaN(hours) || hours <= 0 || hours > 24) {\n  throw new Error('OIL hours must be a number between 0.5 and 24.');\n}\n\nif (hours < 10) {\n  if (!body.oilTimeFrom || !body.oilTimeTo) {\n    throw new Error('OIL From Time and To Time are required for partial day claims.');\n  }\n}\n\nfunction formatTime(t) { return t ? t.replace(':', 'h') : ''; }\n\nreturn [{\n  json: {\n    staffName:        body.staffName.trim(),\n    dateApplied:      body.dateApplied,\n    oilDate:          body.oilDate,\n    oilHours:         hours,\n    oilTimeFrom:      hours >= 10 ? 'Full Day' : formatTime(body.oilTimeFrom || ''),\n    oilTimeTo:        hours >= 10 ? 'Full Day' : formatTime(body.oilTimeTo   || ''),\n    reason:           body.reason.trim(),\n    submittedAt:      new Date().toISOString(),\n    validationStatus: 'Pending'\n  }\n}];\n"
             },
             "id": "node_validate_fields",
             "name": "Validate Fields",
@@ -30,62 +28,6 @@
             "typeVersion": 2,
             "position": [
                 460,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "jsCode": "// ── Validate uploaded file ───────────────────────────────────────────────────\nconst binary = $input.first().binary;\n\nif (!binary || !binary.approvalFile) {\n  throw new Error('Approval file is missing from the submission.');\n}\n\nconst file     = binary.approvalFile;\nconst mimeType = file.mimeType || '';\nconst allowed  = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];\n\nif (!allowed.includes(mimeType)) {\n  throw new Error(`Invalid file type: ${mimeType}. Only JPG, PNG, GIF, WEBP, or PDF files are accepted.`);\n}\n\nconst ext = mimeType === 'application/pdf' ? 'pdf'\n  : mimeType === 'image/png'  ? 'png'\n  : mimeType === 'image/gif'  ? 'gif'\n  : mimeType === 'image/webp' ? 'webp'\n  : 'jpg';\n\n// Build Drive filename: StaffName_DateApplied_OILHours_Approval.ext\nconst data = $input.first().json;\nconst safeName      = data.staffName.replace(/[^a-zA-Z0-9]/g, '_');\nconst safeDate      = data.dateApplied.replace(/-/g, '-');\nconst safeHours     = data.oilHours.toString().replace('.', 'p');\nconst driveFileName = `${safeName}_${safeDate}_${safeHours}h_Approval.${ext}`;\nconst monthFolder   = data.dateApplied.substring(0, 7);\n\nreturn [{\n  json: { ...data, driveFileName, monthFolder, fileExt: ext },\n  binary\n}];\n"
-            },
-            "id": "node_validate_file",
-            "name": "Validate File Type & Name",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                680,
-                300
-            ]
-        },
-        {
-            "parameters": {
-                "operation": "upload",
-                "name": "={{ $json.driveFileName }}",
-                "driveId": {
-                    "mode": "list",
-                    "value": "My Drive"
-                },
-                "folderId": {
-                    "mode": "list",
-                    "value": "={{ $json.monthFolder }}"
-                },
-                "inputDataFieldName": "approvalFile",
-                "options": {}
-            },
-            "id": "node_drive_upload",
-            "name": "Upload to Google Drive",
-            "type": "n8n-nodes-base.googleDrive",
-            "typeVersion": 3,
-            "position": [
-                900,
-                300
-            ],
-            "credentials": {
-                "googleDriveOAuth2Api": {
-                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
-                    "name": "Google Drive account 3"
-                }
-            }
-        },
-        {
-            "parameters": {
-                "jsCode": "// ── Extract Drive file link from upload response ─────────────────────────────\nconst driveData = $input.first().json;\n\nconst fileId   = driveData.id || driveData.fileId || '';\nconst fileLink = driveData.webViewLink\n  || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\n\nconst prevData = $('Validate File Type & Name').first().json;\n\nreturn [{\n  json: {\n    ...prevData,\n    driveFileId: fileId,\n    approvalFileLink: fileLink\n  }\n}];\n"
-            },
-            "id": "node_extract_link",
-            "name": "Extract Drive Link",
-            "type": "n8n-nodes-base.code",
-            "typeVersion": 2,
-            "position": [
-                1120,
                 300
             ]
         },
@@ -101,19 +43,8 @@
                     "value": "Sheet1"
                 },
                 "columns": {
-                    "mappingMode": "defineBelow",
-                    "value": {
-                        "Staff Name": "={{ $json.staffName }}",
-                        "Date Applied": "={{ $json.dateApplied }}",
-                        "OIL Date": "={{ $json.oilDate }}",
-                        "OIL Hours": "={{ $json.oilHours }}",
-                        "OIL From Time": "={{ $json.oilTimeFrom }}",
-                        "OIL To Time": "={{ $json.oilTimeTo }}",
-                        "Reason": "={{ $json.reason }}",
-                        "Approval File Link": "={{ $json.approvalFileLink }}",
-                        "Validation Status": "={{ $json.validationStatus }}",
-                        "Submitted At": "={{ $json.submittedAt }}"
-                    }
+                    "mappingMode": "autoMapInputData",
+                    "value": {}
                 },
                 "options": {}
             },
@@ -122,7 +53,7 @@
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
             "position": [
-                1340,
+                680,
                 300
             ],
             "credentials": {
@@ -134,8 +65,50 @@
         },
         {
             "parameters": {
+                "jsCode": "const data = $('Validate Fields').first().json;\n\nconst baseUrl    = 'https://ulink.app.n8n.cloud/webhook/oil-approve';\nconst params     = `staffName=${encodeURIComponent(data.staffName)}&submittedAt=${encodeURIComponent(data.submittedAt)}`;\nconst approveUrl = `${baseUrl}?decision=Approved&${params}`;\nconst rejectUrl  = `${baseUrl}?decision=Rejected&${params}`;\n\nconst timeDisplay = data.oilTimeFrom === 'Full Day' ? 'Full Day' : `${data.oilTimeFrom} to ${data.oilTimeTo}`;\n\nconst emailHtml = `\n<!DOCTYPE html>\n<html>\n<head><meta charset=\"utf-8\"></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px\">\n  <div style=\"max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1)\">\n    <div style=\"background:linear-gradient(135deg,#6366f1,#8b5cf6);padding:30px;text-align:center\">\n      <h1 style=\"color:white;margin:0;font-size:22px\">🔔 New OIL Claim Submitted</h1>\n      <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">Action required — please review and approve or reject</p>\n    </div>\n    <div style=\"padding:30px\">\n      <table style=\"width:100%;border-collapse:collapse\">\n        <tr style=\"border-bottom:1px solid #eee\">\n          <td style=\"padding:12px 0;color:#666;font-size:13px;width:40%\">👤 Staff Name</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${data.staffName}</td>\n        </tr>\n        <tr style=\"border-bottom:1px solid #eee\">\n          <td style=\"padding:12px 0;color:#666;font-size:13px\">📅 Date Applied</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${data.dateApplied}</td>\n        </tr>\n        <tr style=\"border-bottom:1px solid #eee\">\n          <td style=\"padding:12px 0;color:#666;font-size:13px\">📆 OIL Date</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${data.oilDate}</td>\n        </tr>\n        <tr style=\"border-bottom:1px solid #eee\">\n          <td style=\"padding:12px 0;color:#666;font-size:13px\">⏱ Hours Claimed</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${data.oilHours} hours</td>\n        </tr>\n        <tr style=\"border-bottom:1px solid #eee\">\n          <td style=\"padding:12px 0;color:#666;font-size:13px\">🕐 Time Period</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${timeDisplay}</td>\n        </tr>\n        <tr>\n          <td style=\"padding:12px 0;color:#666;font-size:13px\">💬 Reason</td>\n          <td style=\"padding:12px 0;font-weight:600;color:#111\">${data.reason}</td>\n        </tr>\n      </table>\n      <hr style=\"border:none;border-top:1px solid #eee;margin:24px 0\">\n      <p style=\"text-align:center;color:#666;font-size:14px;margin-bottom:20px\">Please take one of the following actions:</p>\n      <div style=\"text-align:center\">\n        <a href=\"${approveUrl}\" style=\"display:inline-block;background:#10b981;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:700;margin:0 8px\">✅ APPROVE</a>\n        <a href=\"${rejectUrl}\" style=\"display:inline-block;background:#ef4444;color:white;text-decoration:none;padding:14px 32px;border-radius:8px;font-size:16px;font-weight:700;margin:0 8px\">❌ REJECT</a>\n      </div>\n      <p style=\"text-align:center;color:#999;font-size:11px;margin-top:20px\">Submitted: ${data.submittedAt}</p>\n    </div>\n  </div>\n</body>\n</html>`;\n\nreturn [{ json: { ...data, emailHtml } }];\n"
+            },
+            "id": "node_build_email",
+            "name": "Build Notification Email",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "toList": [
+                    "gm@ulinkassist.com",
+                    "claims1@ulinkassist.com",
+                    "finance@ulinkassist.com"
+                ],
+                "subject": "=🔔 OIL Claim Review Required — {{ $json.staffName }} ({{ $json.oilHours }} hrs on {{ $json.oilDate }})",
+                "emailType": "html",
+                "message": "={{ $json.emailHtml }}",
+                "options": {}
+            },
+            "id": "node_send_email",
+            "name": "Send Notification Email",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.1,
+            "position": [
+                1120,
+                300
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
                 "respondWith": "json",
-                "responseBody": "={{ JSON.stringify({ success: true, message: 'OIL claim submitted and recorded successfully.', staffName: $('Extract Drive Link').first().json.staffName, oilHours: $('Extract Drive Link').first().json.oilHours }) }}",
+                "responseBody": "={{ JSON.stringify({ success: true, message: 'OIL claim submitted successfully. Your manager has been notified for approval.' }) }}",
                 "options": {
                     "responseCode": 200
                 }
@@ -145,25 +118,8 @@
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1,
             "position": [
-                1560,
+                1340,
                 300
-            ]
-        },
-        {
-            "parameters": {
-                "respondWith": "json",
-                "responseBody": "={{ JSON.stringify({ success: false, error: $execution.error ? $execution.error.message : 'Unknown error' }) }}",
-                "options": {
-                    "responseCode": 422
-                }
-            },
-            "id": "node_respond_error",
-            "name": "Respond — Error",
-            "type": "n8n-nodes-base.respondToWebhook",
-            "typeVersion": 1,
-            "position": [
-                1560,
-                480
             ]
         }
     ],
@@ -183,39 +139,6 @@
             "main": [
                 [
                     {
-                        "node": "Validate File Type & Name",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Validate File Type & Name": {
-            "main": [
-                [
-                    {
-                        "node": "Upload to Google Drive",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Upload to Google Drive": {
-            "main": [
-                [
-                    {
-                        "node": "Extract Drive Link",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Extract Drive Link": {
-            "main": [
-                [
-                    {
                         "node": "Append Row to Google Sheet",
                         "type": "main",
                         "index": 0
@@ -224,6 +147,28 @@
             ]
         },
         "Append Row to Google Sheet": {
+            "main": [
+                [
+                    {
+                        "node": "Build Notification Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Notification Email": {
+            "main": [
+                [
+                    {
+                        "node": "Send Notification Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Notification Email": {
             "main": [
                 [
                     {
@@ -247,6 +192,6 @@
     ],
     "pinData": {},
     "meta": {
-        "instanceId": "oil-tracker-submission-v2"
+        "instanceId": "oil-tracker-submission-v5"
     }
 }
