@@ -122,6 +122,23 @@
 
     oilHoursInput.addEventListener('input', toggleTimeFields);
 
+    // ── Auto-calculate OIL To Time from From Time + Hours ──────────────────
+    function autoCalcToTime() {
+      const fromVal = oilTimeFrom.value;
+      const hours = parseFloat(oilHoursInput.value);
+      if (!fromVal || isNaN(hours)) return;
+
+      const [h, m] = fromVal.split(':').map(Number);
+      const totalMins = h * 60 + m + Math.round(hours * 60);
+      const toH = Math.floor(totalMins / 60) % 24;
+      const toM = totalMins % 60;
+      oilTimeTo.value = String(toH).padStart(2, '0') + ':' + String(toM).padStart(2, '0');
+    }
+
+    oilTimeFrom.addEventListener('change', autoCalcToTime);
+    oilHoursInput.addEventListener('change', autoCalcToTime);
+
+
     // ── Status helper ───────────────────────────────────────────────────────
     const statusBanner = document.getElementById('statusBanner');
     const statusMessage = document.getElementById('statusMessage');
