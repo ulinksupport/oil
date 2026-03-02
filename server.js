@@ -1,6 +1,8 @@
 require('dotenv').config();
 const express = require('express');
+const multer = require('multer');
 const axios = require('axios');
+const FormData = require('form-data');
 const path = require('path');
 
 const app = express();
@@ -11,31 +13,37 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ── POST /submit ─────────────────────────────────────────────────────────────
+// Multer for OPD file uploads (max 10 MB)
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+        allowed.includes(file.mimetype)
+            ? cb(null, true)
+            : cb(new Error('Only JPG, PNG, GIF, WEBP, or PDF files are accepted.'));
+    }
+});
+
+// ── POST /submit  (OIL — JSON) ───────────────────────────────────────────────
 app.post('/submit', async (req, res) => {
     try {
-        // Validate required fields
         const required = ['staffName', 'dateApplied', 'oilDate', 'oilHours', 'reason'];
         for (const field of required) {
-            if (!req.body[field] || !req.body[field].toString().trim()) {
+            if (!req.body[field] || !req.body[field].toString().trim())
                 return res.status(400).json({ success: false, error: `Missing required field: ${field}` });
-            }
         }
 
-        // If partial day (< 10 hours), From/To times are required
         const oilHoursVal = parseFloat(req.body.oilHours);
         if (!isNaN(oilHoursVal) && oilHoursVal < 10) {
-            if (!req.body.oilTimeFrom || !req.body.oilTimeTo) {
+            if (!req.body.oilTimeFrom || !req.body.oilTimeTo)
                 return res.status(400).json({ success: false, error: 'OIL From Time and To Time are required for partial day claims.' });
-            }
         }
 
         const webhookUrl = process.env.N8N_SUBMISSION_WEBHOOK;
-        if (!webhookUrl) {
-            return res.status(500).json({ success: false, error: 'Server configuration error: N8N_SUBMISSION_WEBHOOK not set.' });
-        }
+        if (!webhookUrl)
+            return res.status(500).json({ success: false, error: 'N8N_SUBMISSION_WEBHOOK not set.' });
 
-        // Send JSON payload to n8n
         const payload = {
             staffName: req.body.staffName.trim(),
             dateApplied: req.body.dateApplied,
@@ -51,14 +59,57 @@ app.post('/submit', async (req, res) => {
             timeout: 30000
         });
 
-        if (n8nRes.data && n8nRes.data.success === false) {
-            return res.status(422).json({ success: false, error: n8nRes.data.error || 'Validation failed in workflow.' });
-        }
+        if (n8nRes.data?.success === false)
+            return res.status(422).json({ success: false, error: n8nRes.data.error });
 
-        return res.json({ success: true, message: 'OIL claim submitted and recorded successfully.' });
+        return res.json({ success: true, message: 'OIL claim submitted successfully.' });
 
     } catch (err) {
         console.error('[/submit error]', err.message);
+        return res.status(500).json({ success: false, error: 'Submission failed. Please try again.' });
+    }
+});
+
+// ── POST /submit-opd  (OPD — multipart with file) ────────────────────────────
+app.post('/submit-opd', upload.single('opdFile'), async (req, res) => {
+    try {
+        const required = ['staffName', 'treatmentDate', 'treatmentAmount', 'diagnosis'];
+        for (const field of required) {
+            if (!req.body[field] || !req.body[field].toString().trim())
+                return res.status(400).json({ success: false, error: `Missing required field: ${field}` });
+        }
+
+        if (!req.file)
+            return res.status(400).json({ success: false, error: 'Receipt or medical document is required.' });
+
+        const webhookUrl = process.env.N8N_OPD_WEBHOOK;
+        if (!webhookUrl)
+            return res.status(500).json({ success: false, error: 'N8N_OPD_WEBHOOK not set.' });
+
+        const form = new FormData();
+        form.append('staffName', req.body.staffName.trim());
+        form.append('treatmentDate', req.body.treatmentDate);
+        form.append('treatmentAmount', req.body.treatmentAmount);
+        form.append('diagnosis', req.body.diagnosis.trim());
+        form.append('opdFile', req.file.buffer, {
+            filename: req.file.originalname,
+            contentType: req.file.mimetype
+        });
+
+        const n8nRes = await axios.post(webhookUrl, form, {
+            headers: form.getHeaders(),
+            timeout: 30000
+        });
+
+        if (n8nRes.data?.success === false)
+            return res.status(422).json({ success: false, error: n8nRes.data.error });
+
+        return res.json({ success: true, message: 'OPD claim submitted successfully.' });
+
+    } catch (err) {
+        console.error('[/submit-opd error]', err.message);
+        if (err.message?.includes('Only JPG'))
+            return res.status(400).json({ success: false, error: err.message });
         return res.status(500).json({ success: false, error: 'Submission failed. Please try again.' });
     }
 });
@@ -67,14 +118,12 @@ app.post('/submit', async (req, res) => {
 app.post('/query', async (req, res) => {
     try {
         const { question } = req.body;
-        if (!question || !question.trim()) {
+        if (!question?.trim())
             return res.status(400).json({ success: false, error: 'Question is required.' });
-        }
 
         const webhookUrl = process.env.N8N_QUERY_WEBHOOK;
-        if (!webhookUrl) {
-            return res.status(500).json({ success: false, error: 'Server configuration error: N8N_QUERY_WEBHOOK not set.' });
-        }
+        if (!webhookUrl)
+            return res.status(500).json({ success: false, error: 'N8N_QUERY_WEBHOOK not set.' });
 
         const n8nRes = await axios.post(webhookUrl, { question: question.trim() }, {
             headers: { 'Content-Type': 'application/json' },
@@ -82,9 +131,8 @@ app.post('/query', async (req, res) => {
         });
 
         const answer = n8nRes.data?.answer || n8nRes.data?.output || n8nRes.data?.text;
-        if (!answer) {
+        if (!answer)
             return res.status(500).json({ success: false, error: 'No answer returned from the AI assistant.' });
-        }
 
         return res.json({ success: true, answer });
 
@@ -99,8 +147,8 @@ app.get('/health', (req, res) => res.json({ status: 'ok', timestamp: new Date().
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 app.listen(PORT, () => {
-    console.log(`\n🟢 OIL Tracker server running on http://localhost:${PORT}`);
-    console.log(`   Form:     http://localhost:${PORT}/`);
-    console.log(`   Chatbot:  http://localhost:${PORT}/chat.html`);
-    console.log(`   Health:   http://localhost:${PORT}/health\n`);
+    console.log(`\n🟢 Claims Portal running on http://localhost:${PORT}`);
+    console.log(`   Form:    http://localhost:${PORT}/`);
+    console.log(`   Chatbot: http://localhost:${PORT}/chat.html`);
+    console.log(`   Health:  http://localhost:${PORT}/health\n`);
 });

@@ -1,0 +1,262 @@
+{
+    "name": "OPD Claims — Submission Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "opd-submit",
+                "responseMode": "responseNode",
+                "options": {
+                    "rawBody": false
+                }
+            },
+            "id": "node_webhook_opd",
+            "name": "Webhook — Receive OPD Form",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "opd-submit"
+        },
+        {
+            "parameters": {
+                "jsCode": "// ── Validate OPD fields ─────────────────────────────────────────────────────\nconst body = $input.first().json.body || $input.first().json;\n\nconst required = ['staffName', 'treatmentDate', 'treatmentAmount', 'diagnosis'];\nfor (const field of required) {\n  if (!body[field] || body[field].toString().trim() === '') {\n    throw new Error(`Missing required field: ${field}`);\n  }\n}\n\nconst amount = parseFloat(body.treatmentAmount);\nif (isNaN(amount) || amount <= 0) {\n  throw new Error('Treatment amount must be a valid positive number.');\n}\n\nreturn [{\n  json: {\n    staffName:        body.staffName.trim(),\n    treatmentDate:    body.treatmentDate,\n    treatmentAmount:  amount.toFixed(2),\n    diagnosis:        body.diagnosis.trim(),\n    submittedAt:      new Date().toISOString(),\n    claimStatus:      'Pending Review'\n  },\n  binary: $input.first().binary\n}];\n"
+            },
+            "id": "node_validate_opd",
+            "name": "Validate OPD Fields",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "upload",
+                "name": "={{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($input.first().binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : 'jpg') }}",
+                "driveId": {
+                    "mode": "list",
+                    "value": "My Drive"
+                },
+                "folderId": {
+                    "mode": "list",
+                    "value": "OPD-Receipts"
+                },
+                "inputDataFieldName": "opdFile",
+                "options": {}
+            },
+            "id": "node_drive_upload",
+            "name": "Upload Receipt to Google Drive",
+            "type": "n8n-nodes-base.googleDrive",
+            "typeVersion": 3,
+            "position": [
+                680,
+                300
+            ],
+            "credentials": {
+                "googleDriveOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Drive account 3"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const driveData = $input.first().json;\nconst fileId    = driveData.id || driveData.fileId || '';\nconst fileLink  = driveData.webViewLink || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\nconst prevData  = $('Validate OPD Fields').first().json;\nreturn [{ json: { ...prevData, receiptLink: fileLink } }];\n"
+            },
+            "id": "node_extract_link",
+            "name": "Extract Drive Link",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "append",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_OPD_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "Sheet1"
+                },
+                "columns": {
+                    "mappingMode": "autoMapInputData",
+                    "value": {}
+                },
+                "options": {}
+            },
+            "id": "node_sheets_append",
+            "name": "Append Row to OPD Sheet",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                1120,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const data = $('Extract Drive Link').first().json;\n\nconst emailHtml = `\n<!DOCTYPE html><html><head><meta charset=\"utf-8\"></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:20px\">\n  <div style=\"max-width:600px;margin:0 auto;background:white;border-radius:12px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.1)\">\n    <div style=\"background:linear-gradient(135deg,#0ea5e9,#6366f1);padding:30px;text-align:center\">\n      <h1 style=\"color:white;margin:0;font-size:22px\">🏥 New OPD Medical Claim</h1>\n      <p style=\"color:rgba(255,255,255,0.85);margin:8px 0 0\">A staff member has submitted a medical reimbursement claim</p>\n    </div>\n    <div style=\"padding:30px\">\n      <table style=\"width:100%;border-collapse:collapse\">\n        <tr style=\"border-bottom:1px solid #eee\"><td style=\"padding:12px 0;color:#666;font-size:13px;width:40%\">👤 Staff Name</td><td style=\"padding:12px 0;font-weight:600\">${data.staffName}</td></tr>\n        <tr style=\"border-bottom:1px solid #eee\"><td style=\"padding:12px 0;color:#666;font-size:13px\">📅 Treatment Date</td><td style=\"padding:12px 0;font-weight:600\">${data.treatmentDate}</td></tr>\n        <tr style=\"border-bottom:1px solid #eee\"><td style=\"padding:12px 0;color:#666;font-size:13px\">💰 Amount Claimed</td><td style=\"padding:12px 0;font-weight:600;color:#10b981\">RM ${data.treatmentAmount}</td></tr>\n        <tr style=\"border-bottom:1px solid #eee\"><td style=\"padding:12px 0;color:#666;font-size:13px\">🩺 Diagnosis</td><td style=\"padding:12px 0;font-weight:600\">${data.diagnosis}</td></tr>\n        <tr><td style=\"padding:12px 0;color:#666;font-size:13px\">📎 Receipt</td><td style=\"padding:12px 0\"><a href=\"${data.receiptLink}\" style=\"color:#6366f1;font-weight:600\">View Document</a></td></tr>\n      </table>\n      <div style=\"margin-top:24px;padding:16px;background:#fef3c7;border-radius:8px;font-size:13px;color:#92400e\">\n        ⏳ <strong>Status: Pending Review</strong> — Please review and update the claim status in the OPD tracker.\n      </div>\n    </div>\n  </div>\n</body></html>`;\n\nreturn [{ json: { ...data, emailHtml } }];\n"
+            },
+            "id": "node_build_email",
+            "name": "Build Notification Email",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1340,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "resource": "message",
+                "operation": "send",
+                "toList": [
+                    "gm@ulinkassist.com",
+                    "claims1@ulinkassist.com",
+                    "finance@ulinkassist.com"
+                ],
+                "subject": "=🏥 OPD Claim — {{ $json.staffName }} (RM {{ $json.treatmentAmount }} on {{ $json.treatmentDate }})",
+                "emailType": "html",
+                "message": "={{ $json.emailHtml }}",
+                "options": {}
+            },
+            "id": "node_send_email",
+            "name": "Send Notification Email",
+            "type": "n8n-nodes-base.gmail",
+            "typeVersion": 2.1,
+            "position": [
+                1560,
+                300
+            ],
+            "credentials": {
+                "gmailOAuth2": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Gmail account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ JSON.stringify({ success: true, message: 'OPD claim submitted successfully. Your claim is pending review.' }) }}",
+                "options": {
+                    "responseCode": 200
+                }
+            },
+            "id": "node_respond_success",
+            "name": "Respond — Success",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1780,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook — Receive OPD Form": {
+            "main": [
+                [
+                    {
+                        "node": "Validate OPD Fields",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Validate OPD Fields": {
+            "main": [
+                [
+                    {
+                        "node": "Upload Receipt to Google Drive",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Upload Receipt to Google Drive": {
+            "main": [
+                [
+                    {
+                        "node": "Extract Drive Link",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Extract Drive Link": {
+            "main": [
+                [
+                    {
+                        "node": "Append Row to OPD Sheet",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Append Row to OPD Sheet": {
+            "main": [
+                [
+                    {
+                        "node": "Build Notification Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Notification Email": {
+            "main": [
+                [
+                    {
+                        "node": "Send Notification Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Notification Email": {
+            "main": [
+                [
+                    {
+                        "node": "Respond — Success",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveDataSuccessExecution": "all",
+        "saveDataErrorExecution": "all"
+    },
+    "staticData": null,
+    "tags": [
+        "opd-claims"
+    ],
+    "meta": {
+        "instanceId": "opd-claims-submission-v1"
+    }
+}

@@ -4,10 +4,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>OIL Claim Submission | Off-in-Lieu Tracker</title>
-  <meta name="description"
-    content="Submit your Off-in-Lieu (OIL) claim — track extra hours worked and upload your approval evidence." />
+  <title>Claims Portal | OIL & OPD Tracker</title>
+  <meta name="description" content="Submit OIL (Off-in-Lieu) or OPD (Medical) claims." />
   <link rel="stylesheet" href="style.css" />
+  <style>
+    /* ── Tab Navigation ─────────────────────────────── */
+    .tab-nav {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 6px;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      background: transparent;
+      color: var(--text-muted, #aaa);
+      letter-spacing: 0.3px;
+    }
+
+    .tab-btn.active {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: white;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+    }
+
+    .tab-btn:not(.active):hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: white;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+    }
+  </style>
 </head>
 
 <body>
@@ -16,84 +59,163 @@
 
     <!-- Header -->
     <header class="page-header">
-      <div class="badge">⏱ Off-in-Lieu Tracker</div>
-      <h1>Submit OIL Claim</h1>
-      <p>Fill in the form below to submit your Off-in-Lieu request. Your manager will review and approve directly.</p>
+      <div class="badge">📋 Staff Claims Portal</div>
+      <h1>Submit a Claim</h1>
+      <p>Choose your claim type below and fill in the details.</p>
     </header>
 
-    <!-- Form Card -->
-    <div class="card">
-      <form id="oilForm" novalidate>
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" id="tab-oil" onclick="switchTab('oil')">⏱ OIL Claim</button>
+      <button class="tab-btn" id="tab-opd" onclick="switchTab('opd')">🏥 OPD Medical Claim</button>
+    </div>
 
-        <!-- Section: Staff Info -->
-        <div class="card-section">
-          <div class="section-label">Staff Information</div>
+    <!-- ═══════════════════════════════════════════════
+         TAB 1 — OIL Claim Form
+    ════════════════════════════════════════════════ -->
+    <div class="tab-panel active" id="panel-oil">
+      <div class="card">
+        <form id="oilForm" novalidate>
 
-          <div class="form-group">
-            <label for="staffName">Staff Name <span class="required">*</span></label>
-            <input type="text" id="staffName" name="staffName" placeholder="e.g. Alice Tan" required
-              autocomplete="name" />
-          </div>
-
-          <div class="form-group">
-            <label for="dateApplied">Date Applied <span class="required">*</span></label>
-            <input type="date" id="dateApplied" name="dateApplied" required />
-          </div>
-        </div>
-
-        <hr class="divider" />
-
-        <!-- Section: OIL Details -->
-        <div class="card-section">
-          <div class="section-label">OIL Details</div>
-
-          <div class="form-group">
-            <label for="oilDate">Date of OIL <span class="required">*</span></label>
-            <input type="date" id="oilDate" name="oilDate" required />
-          </div>
-
-          <div class="form-group">
-            <label for="oilHours">OIL Hours Claimed <span class="required">*</span></label>
-            <input type="number" id="oilHours" name="oilHours" placeholder="e.g. 10 for a full day, 5 for half day"
-              min="0.5" max="24" step="0.5" required />
-            <small class="field-hint">💡 1 full day = 10 hours. Enter the total hours you are claiming.</small>
-          </div>
-
-          <!-- Conditional: From/To time — shown only when hours < 10 -->
-          <div class="form-row" id="timeRangeRow" style="display:none">
+          <div class="card-section">
+            <div class="section-label">Staff Information</div>
             <div class="form-group">
-              <label for="oilTimeFrom">OIL From Time <span class="required">*</span></label>
-              <input type="time" id="oilTimeFrom" name="oilTimeFrom" />
+              <label for="staffName">Staff Name <span class="required">*</span></label>
+              <input type="text" id="staffName" name="staffName" placeholder="e.g. Alice Tan" required
+                autocomplete="name" />
             </div>
             <div class="form-group">
-              <label for="oilTimeTo">OIL To Time <span class="required">*</span></label>
-              <input type="time" id="oilTimeTo" name="oilTimeTo" />
+              <label for="dateApplied">Date Applied <span class="required">*</span></label>
+              <input type="date" id="dateApplied" name="dateApplied" required />
             </div>
           </div>
-          <small class="field-hint" id="timeRangeHint" style="display:none; margin-top:-8px; margin-bottom:12px;">
-            ⏰ Since you are claiming less than a full day, please specify the time range.
-          </small>
 
-          <div class="form-group">
-            <label for="reason">Reason for OIL <span class="required">*</span></label>
-            <textarea id="reason" name="reason"
-              placeholder="Briefly describe why you worked overtime and what tasks were done…" required></textarea>
+          <hr class="divider" />
+
+          <div class="card-section">
+            <div class="section-label">OIL Details</div>
+
+            <div class="form-group">
+              <label for="oilDate">Date of OIL <span class="required">*</span></label>
+              <input type="date" id="oilDate" name="oilDate" required />
+            </div>
+
+            <div class="form-group">
+              <label for="oilHours">OIL Hours Claimed <span class="required">*</span></label>
+              <input type="number" id="oilHours" name="oilHours" placeholder="e.g. 10 for a full day, 5 for half day"
+                min="0.5" max="24" step="0.5" required />
+              <small class="field-hint">💡 1 full day = 10 hours. Enter the total hours you are claiming.</small>
+            </div>
+
+            <div class="form-row" id="timeRangeRow" style="display:none">
+              <div class="form-group">
+                <label for="oilTimeFrom">OIL From Time <span class="required">*</span></label>
+                <input type="time" id="oilTimeFrom" name="oilTimeFrom" />
+              </div>
+              <div class="form-group">
+                <label for="oilTimeTo">OIL To Time <span class="required">*</span></label>
+                <input type="time" id="oilTimeTo" name="oilTimeTo" />
+              </div>
+            </div>
+            <small class="field-hint" id="timeRangeHint" style="display:none; margin-top:-8px; margin-bottom:12px;">
+              ⏰ Since you are claiming less than a full day, please specify the time range.
+            </small>
+
+            <div class="form-group">
+              <label for="reason">Reason for OIL <span class="required">*</span></label>
+              <textarea id="reason" name="reason"
+                placeholder="Briefly describe why you worked overtime and what tasks were done…" required></textarea>
+            </div>
           </div>
-        </div>
 
+          <button type="submit" class="btn-submit" id="oilSubmitBtn">
+            <span class="btn-icon">🚀</span> Submit OIL Claim
+          </button>
 
-        <!-- Submit -->
-        <button type="submit" class="btn-submit" id="submitBtn">
-          <span class="btn-icon">🚀</span> Submit OIL Claim
-        </button>
+          <div class="status-banner" id="oilStatusBanner">
+            <div class="spinner" id="oilSpinner" style="display:none"></div>
+            <span id="oilStatusMessage"></span>
+          </div>
 
-        <!-- Status banner -->
-        <div class="status-banner" id="statusBanner">
-          <div class="spinner" id="statusSpinner" style="display:none"></div>
-          <span id="statusMessage"></span>
-        </div>
+        </form>
+      </div>
+    </div>
 
-      </form>
+    <!-- ═══════════════════════════════════════════════
+         TAB 2 — OPD Medical Claim Form
+    ════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-opd">
+      <div class="card">
+        <form id="opdForm" novalidate enctype="multipart/form-data">
+
+          <div class="card-section">
+            <div class="section-label">Staff Information</div>
+            <div class="form-group">
+              <label for="opd_staffName">Staff Name <span class="required">*</span></label>
+              <input type="text" id="opd_staffName" name="opd_staffName" placeholder="e.g. Alice Tan" required
+                autocomplete="name" />
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="card-section">
+            <div class="section-label">Treatment Details</div>
+
+            <div class="form-group">
+              <label for="treatmentDate">Treatment Date <span class="required">*</span></label>
+              <input type="date" id="treatmentDate" name="treatmentDate" required />
+            </div>
+
+            <div class="form-group">
+              <label for="treatmentAmount">Treatment Amount (RM) <span class="required">*</span></label>
+              <input type="number" id="treatmentAmount" name="treatmentAmount" placeholder="e.g. 150.00" min="0.01"
+                step="0.01" required />
+            </div>
+
+            <div class="form-group">
+              <label for="diagnosis">Reason / Diagnosis <span class="required">*</span></label>
+              <textarea id="diagnosis" name="diagnosis"
+                placeholder="e.g. Fever and flu, dental extraction, eye consultation…" required></textarea>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="card-section">
+            <div class="section-label">Receipt / Medical Document</div>
+            <div class="form-group">
+              <label for="opdFile">Upload Receipt or Medical Certificate <span class="required">*</span></label>
+              <div class="file-upload-area" id="opdUploadArea">
+                <input type="file" id="opdFile" name="opdFile" accept="image/*,.pdf" required />
+                <div class="file-upload-icon">📎</div>
+                <div class="file-upload-label">Drag &amp; drop or <span>browse files</span></div>
+                <div class="file-upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</div>
+              </div>
+              <div class="file-selected" id="opdFileSelected">
+                <span>✅</span>
+                <span id="opdFileName"></span>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-submit" id="opdSubmitBtn">
+            <span class="btn-icon">🏥</span> Submit OPD Claim
+          </button>
+
+          <div class="status-banner" id="opdStatusBanner">
+            <div class="spinner" id="opdSpinner" style="display:none"></div>
+            <span id="opdStatusMessage"></span>
+          </div>
+
+        </form>
+      </div>
+
+      <!-- Live Tracker link -->
+      <p style="text-align:center; margin-top:16px; font-size:13px; opacity:0.7;">
+        📊 <a href="https://docs.google.com/spreadsheets/d/REPLACE_WITH_OPD_SHEET_ID/edit" target="_blank"
+          style="color:var(--accent-light,#a78bfa);">View live OPD claims status →</a>
+      </p>
     </div>
 
     <!-- Nav -->
@@ -104,7 +226,15 @@
   </div>
 
   <script>
-    // ── Conditional From/To time fields ────────────────────────────────────
+    // ── Tab switching ────────────────────────────────────────────────────────
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('tab-' + tab).classList.add('active');
+      document.getElementById('panel-' + tab).classList.add('active');
+    }
+
+    // ── OIL: Conditional time fields ─────────────────────────────────────────
     const oilHoursInput = document.getElementById('oilHours');
     const timeRangeRow = document.getElementById('timeRangeRow');
     const timeRangeHint = document.getElementById('timeRangeHint');
@@ -119,46 +249,35 @@
       oilTimeFrom.required = showTime;
       oilTimeTo.required = showTime;
     }
-
     oilHoursInput.addEventListener('input', toggleTimeFields);
 
-    // ── Auto-calculate OIL To Time from From Time + Hours ──────────────────
+    // ── OIL: Auto-calculate To Time ──────────────────────────────────────────
     function autoCalcToTime() {
       const fromVal = oilTimeFrom.value;
       const hours = parseFloat(oilHoursInput.value);
       if (!fromVal || isNaN(hours)) return;
-
       const [h, m] = fromVal.split(':').map(Number);
       const totalMins = h * 60 + m + Math.round(hours * 60);
       const toH = Math.floor(totalMins / 60) % 24;
       const toM = totalMins % 60;
       oilTimeTo.value = String(toH).padStart(2, '0') + ':' + String(toM).padStart(2, '0');
     }
-
     oilTimeFrom.addEventListener('change', autoCalcToTime);
     oilHoursInput.addEventListener('change', autoCalcToTime);
 
-
-    // ── Status helper ───────────────────────────────────────────────────────
-    const statusBanner = document.getElementById('statusBanner');
-    const statusMessage = document.getElementById('statusMessage');
-    const statusSpinner = document.getElementById('statusSpinner');
-    const submitBtn = document.getElementById('submitBtn');
-
-    function showStatus(type, msg) {
-      statusBanner.className = 'status-banner show ' + type;
-      statusMessage.textContent = msg;
-      statusSpinner.style.display = type === 'loading' ? 'block' : 'none';
+    // ── OIL: Status helpers ──────────────────────────────────────────────────
+    function showOilStatus(type, msg) {
+      const banner = document.getElementById('oilStatusBanner');
+      const spinner = document.getElementById('oilSpinner');
+      const msgEl = document.getElementById('oilStatusMessage');
+      banner.className = 'status-banner show ' + type;
+      msgEl.textContent = msg;
+      spinner.style.display = type === 'loading' ? 'block' : 'none';
     }
 
-    function hideStatus() {
-      statusBanner.className = 'status-banner';
-    }
-
-    // ── Form submission ─────────────────────────────────────────────────────
+    // ── OIL: Submit ──────────────────────────────────────────────────────────
     document.getElementById('oilForm').addEventListener('submit', async function (e) {
       e.preventDefault();
-
       const staffName = document.getElementById('staffName').value.trim();
       const dateApplied = document.getElementById('dateApplied').value;
       const oilDate = document.getElementById('oilDate').value;
@@ -168,48 +287,120 @@
       const isPartDay = !isNaN(hours) && hours < 10;
 
       if (!staffName || !dateApplied || !oilDate || !oilHours || !reason) {
-        showStatus('error', '⚠ Please fill in all required fields.');
+        showOilStatus('error', '⚠ Please fill in all required fields.');
         return;
       }
-
       if (isPartDay && (!oilTimeFrom.value || !oilTimeTo.value)) {
-        showStatus('error', '⚠ Please enter the OIL From Time and To Time for a partial day.');
+        showOilStatus('error', '⚠ Please enter the OIL From Time and To Time.');
         return;
       }
 
-      submitBtn.disabled = true;
-      showStatus('loading', 'Submitting your OIL claim, please wait…');
+      document.getElementById('oilSubmitBtn').disabled = true;
+      showOilStatus('loading', 'Submitting your OIL claim, please wait…');
 
       try {
         const payload = {
-          staffName,
-          dateApplied,
-          oilDate,
-          oilHours,
+          staffName, dateApplied, oilDate, oilHours,
           oilTimeFrom: isPartDay ? oilTimeFrom.value : '',
-          oilTimeTo: isPartDay ? oilTimeTo.value : '',
-          reason
+          oilTimeTo: isPartDay ? oilTimeTo.value : '', reason
         };
-
-        const res = await fetch('/submit', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        const res = await fetch('/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         const data = await res.json();
-
         if (res.ok && data.success) {
-          showStatus('success', '✅ OIL claim submitted successfully! Your manager has been notified for approval.');
+          showOilStatus('success', '✅ OIL claim submitted! Your manager has been notified.');
           document.getElementById('oilForm').reset();
           timeRangeRow.style.display = 'none';
           timeRangeHint.style.display = 'none';
         } else {
-          showStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+          showOilStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
         }
       } catch (err) {
-        showStatus('error', '❌ Network error. Please check your connection and try again.');
+        showOilStatus('error', '❌ Network error. Please check your connection.');
       } finally {
-        submitBtn.disabled = false;
+        document.getElementById('oilSubmitBtn').disabled = false;
+      }
+    });
+
+    // ── OPD: File upload UI ──────────────────────────────────────────────────
+    const opdFileInput = document.getElementById('opdFile');
+    const opdUploadArea = document.getElementById('opdUploadArea');
+    const opdFileSelected = document.getElementById('opdFileSelected');
+    const opdFileNameEl = document.getElementById('opdFileName');
+
+    opdFileInput.addEventListener('change', () => {
+      const f = opdFileInput.files[0];
+      if (f) {
+        opdFileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+        opdFileSelected.classList.add('show');
+      } else {
+        opdFileSelected.classList.remove('show');
+      }
+    });
+    opdUploadArea.addEventListener('dragover', e => { e.preventDefault(); opdUploadArea.classList.add('drag-over'); });
+    opdUploadArea.addEventListener('dragleave', () => opdUploadArea.classList.remove('drag-over'));
+    opdUploadArea.addEventListener('drop', () => opdUploadArea.classList.remove('drag-over'));
+
+    // ── OPD: Status helpers ──────────────────────────────────────────────────
+    function showOpdStatus(type, msg) {
+      const banner = document.getElementById('opdStatusBanner');
+      const spinner = document.getElementById('opdSpinner');
+      const msgEl = document.getElementById('opdStatusMessage');
+      banner.className = 'status-banner show ' + type;
+      msgEl.textContent = msg;
+      spinner.style.display = type === 'loading' ? 'block' : 'none';
+    }
+
+    // ── OPD: Submit ──────────────────────────────────────────────────────────
+    document.getElementById('opdForm').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const staffName = document.getElementById('opd_staffName').value.trim();
+      const treatmentDate = document.getElementById('treatmentDate').value;
+      const treatmentAmount = document.getElementById('treatmentAmount').value;
+      const diagnosis = document.getElementById('diagnosis').value.trim();
+      const file = opdFileInput.files[0];
+
+      if (!staffName || !treatmentDate || !treatmentAmount || !diagnosis) {
+        showOpdStatus('error', '⚠ Please fill in all required fields.');
+        return;
+      }
+      if (!file) {
+        showOpdStatus('error', '⚠ Please upload your receipt or medical document.');
+        return;
+      }
+      const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+      if (!allowed.includes(file.type)) {
+        showOpdStatus('error', '⚠ Only JPG, PNG, or PDF files are accepted.');
+        return;
+      }
+      if (file.size > 10 * 1024 * 1024) {
+        showOpdStatus('error', '⚠ File size must be under 10 MB.');
+        return;
+      }
+
+      document.getElementById('opdSubmitBtn').disabled = true;
+      showOpdStatus('loading', 'Submitting your OPD claim, please wait…');
+
+      try {
+        const formData = new FormData();
+        formData.append('staffName', staffName);
+        formData.append('treatmentDate', treatmentDate);
+        formData.append('treatmentAmount', treatmentAmount);
+        formData.append('diagnosis', diagnosis);
+        formData.append('opdFile', file);
+
+        const res = await fetch('/submit-opd', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (res.ok && data.success) {
+          showOpdStatus('success', '✅ OPD claim submitted! You can track its status in the live sheet.');
+          document.getElementById('opdForm').reset();
+          opdFileSelected.classList.remove('show');
+        } else {
+          showOpdStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+        }
+      } catch (err) {
+        showOpdStatus('error', '❌ Network error. Please check your connection.');
+      } finally {
+        document.getElementById('opdSubmitBtn').disabled = false;
       }
     });
 
