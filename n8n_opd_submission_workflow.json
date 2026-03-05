@@ -35,25 +35,25 @@
         },
         {
             "parameters": {
-                "operation": "upload",
-                "name": "={{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($input.first().binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : 'jpg') }}",
-                "folderId": {
-                    "mode": "id",
-                    "value": "OPD-Receipts"
-                },
-                "binaryPropertyName": "opdFile",
+                "method": "PUT",
+                "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/odp/{{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : 'jpg') }}:/content",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "oAuth2Api",
+                "sendBody": true,
+                "contentType": "binaryData",
+                "inputDataFieldName": "opdFile",
                 "options": {}
             },
             "id": "node_drive_upload",
             "name": "Upload Receipt to OneDrive",
-            "type": "n8n-nodes-base.microsoftOneDrive",
-            "typeVersion": 1,
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
             "position": [
                 680,
                 300
             ],
             "credentials": {
-                "microsoftOneDriveOAuth2Api": {
+                "oAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
                     "name": "Microsoft OneDrive account"
                 }
