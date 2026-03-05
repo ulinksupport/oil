@@ -37,35 +37,31 @@
             "parameters": {
                 "operation": "upload",
                 "name": "={{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($input.first().binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : 'jpg') }}",
-                "driveId": {
-                    "mode": "list",
-                    "value": "My Drive"
-                },
                 "folderId": {
-                    "mode": "list",
+                    "mode": "id",
                     "value": "OPD-Receipts"
                 },
-                "inputDataFieldName": "opdFile",
+                "binaryPropertyName": "opdFile",
                 "options": {}
             },
             "id": "node_drive_upload",
-            "name": "Upload Receipt to Google Drive",
-            "type": "n8n-nodes-base.googleDrive",
-            "typeVersion": 3,
+            "name": "Upload Receipt to OneDrive",
+            "type": "n8n-nodes-base.microsoftOneDrive",
+            "typeVersion": 1,
             "position": [
                 680,
                 300
             ],
             "credentials": {
-                "googleDriveOAuth2Api": {
+                "microsoftOneDriveOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
-                    "name": "Google Drive account 3"
+                    "name": "Microsoft OneDrive account"
                 }
             }
         },
         {
             "parameters": {
-                "jsCode": "const driveData = $input.first().json;\nconst fileId    = driveData.id || driveData.fileId || '';\nconst fileLink  = driveData.webViewLink || (fileId ? `https://drive.google.com/file/d/${fileId}/view` : 'N/A');\nconst prevData  = $('Validate OPD Fields').first().json;\nreturn [{ json: { ...prevData, receiptLink: fileLink } }];\n"
+                "jsCode": "const oneDriveData = $input.first().json;\nconst fileLink  = oneDriveData.webUrl || oneDriveData['@microsoft.graph.downloadUrl'] || 'N/A';\nconst prevData  = $('Validate OPD Fields').first().json;\nreturn [{ json: { ...prevData, receiptLink: fileLink } }];\n"
             },
             "id": "node_extract_link",
             "name": "Extract Drive Link",
@@ -184,14 +180,14 @@
             "main": [
                 [
                     {
-                        "node": "Upload Receipt to Google Drive",
+                        "node": "Upload Receipt to OneDrive",
                         "type": "main",
                         "index": 0
                     }
                 ]
             ]
         },
-        "Upload Receipt to Google Drive": {
+        "Upload Receipt to OneDrive": {
             "main": [
                 [
                     {
