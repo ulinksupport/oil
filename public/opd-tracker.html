@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OPD Claims Tracker — Access</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            padding: 24px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4);
+        }
+
+        .icon {
+            font-size: 52px;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        h1 {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        p {
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 14px;
+            margin-bottom: 32px;
+            line-height: 1.5;
+        }
+
+        label {
+            display: block;
+            text-align: left;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .input-wrap {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        input[type="password"] {
+            width: 100%;
+            padding: 14px 48px 14px 16px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            color: #fff;
+            font-size: 20px;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: 6px;
+            outline: none;
+            transition: border 0.2s;
+            text-align: center;
+        }
+
+        input[type="password"]::placeholder {
+            letter-spacing: 2px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        input[type="password"]:focus {
+            border-color: #818cf8;
+        }
+
+        .toggle-eye {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            font-size: 18px;
+            user-select: none;
+            opacity: 0.6;
+        }
+
+        .toggle-eye:hover {
+            opacity: 1;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .error {
+            margin-top: 14px;
+            padding: 10px 14px;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: 8px;
+            color: #fca5a5;
+            font-size: 13px;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(99, 102, 241, 0.2);
+            border: 1px solid rgba(99, 102, 241, 0.4);
+            color: #a5b4fc;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="card">
+        <span class="icon">🏥</span>
+        <div class="badge">Restricted Access</div>
+        <h1>OPD Claims Tracker</h1>
+        <p>Enter the access password to view the live OPD claims status database.</p>
+
+        <label for="passInput">🔒 Password</label>
+        <div class="input-wrap">
+            <input type="password" id="passInput" placeholder="Enter password" maxlength="20"
+                onkeydown="if(event.key==='Enter') checkPassword()" autocomplete="current-password" />
+            <span class="toggle-eye" id="eyeBtn" onclick="toggleEye()">👁</span>
+        </div>
+
+        <button onclick="checkPassword()">Access Tracker →</button>
+
+        <div class="error" id="errorMsg">❌ Incorrect password. Please try again.</div>
+    </div>
+
+    <script>
+        // ── Change this to your desired password ──────────────────────────────────
+        const ACCESS_PASSWORD = '0000';
+        // ── Google Sheet link ─────────────────────────────────────────────────────
+        const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1hhokFjoAiZlFTRf4KEmOmR4bReOwtbuzuEfzvrGUHqA/edit';
+
+        function checkPassword() {
+            const input = document.getElementById('passInput').value;
+            if (input === ACCESS_PASSWORD) {
+                window.open(SHEET_URL, '_blank');
+            } else {
+                const err = document.getElementById('errorMsg');
+                err.classList.add('show');
+                document.getElementById('passInput').value = '';
+                document.getElementById('passInput').focus();
+                setTimeout(() => err.classList.remove('show'), 3000);
+            }
+        }
+
+        function toggleEye() {
+            const inp = document.getElementById('passInput');
+            const eye = document.getElementById('eyeBtn');
+            if (inp.type === 'password') { inp.type = 'text'; eye.textContent = '🙈'; }
+            else { inp.type = 'password'; eye.textContent = '👁'; }
+        }
+
+        document.getElementById('passInput').focus();
+    </script>
+
+</body>
+
+</html>

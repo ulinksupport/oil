@@ -215,201 +215,200 @@
 
       <!-- Live Tracker link -->
       <p style="text-align:center; margin-top:16px; font-size:13px; opacity:0.7;">
-        📊 <a href="https://docs.google.com/spreadsheets/d/1hhokFjoAiZlFTRf4KEmOmR4bReOwtbuzuEfzvrGUHqA/edit"
-          target="_blank" style="color:var(--accent-light,#a78bfa);">View live OPD claims status →</a>
+        📊 <a href="opd-tracker.html" target="_blank" style="color:var(--accent-light,#a78bfa);">View live OPD claims
+          status →</a>
       </p>
+
+      <!-- Nav -->
+      <p class="nav-link">
+        Management view? <a href="chat.html">Open OIL Query Assistant →</a>
+      </p>
+
     </div>
 
-    <!-- Nav -->
-    <p class="nav-link">
-      Management view? <a href="chat.html">Open OIL Query Assistant →</a>
-    </p>
-
-  </div>
-
-  <script>
-    // ── Tab switching ────────────────────────────────────────────────────────
-    function switchTab(tab) {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      document.getElementById('tab-' + tab).classList.add('active');
-      document.getElementById('panel-' + tab).classList.add('active');
-    }
-
-    // ── OIL: Conditional time fields ─────────────────────────────────────────
-    const oilHoursInput = document.getElementById('oilHours');
-    const timeRangeRow = document.getElementById('timeRangeRow');
-    const timeRangeHint = document.getElementById('timeRangeHint');
-    const oilTimeFrom = document.getElementById('oilTimeFrom');
-    const oilTimeTo = document.getElementById('oilTimeTo');
-
-    function toggleTimeFields() {
-      const hours = parseFloat(oilHoursInput.value);
-      const showTime = !isNaN(hours) && hours < 10;
-      timeRangeRow.style.display = showTime ? 'flex' : 'none';
-      timeRangeHint.style.display = showTime ? 'block' : 'none';
-      oilTimeFrom.required = showTime;
-      oilTimeTo.required = showTime;
-    }
-    oilHoursInput.addEventListener('input', toggleTimeFields);
-
-    // ── OIL: Auto-calculate To Time ──────────────────────────────────────────
-    function autoCalcToTime() {
-      const fromVal = oilTimeFrom.value;
-      const hours = parseFloat(oilHoursInput.value);
-      if (!fromVal || isNaN(hours)) return;
-      const [h, m] = fromVal.split(':').map(Number);
-      const totalMins = h * 60 + m + Math.round(hours * 60);
-      const toH = Math.floor(totalMins / 60) % 24;
-      const toM = totalMins % 60;
-      oilTimeTo.value = String(toH).padStart(2, '0') + ':' + String(toM).padStart(2, '0');
-    }
-    oilTimeFrom.addEventListener('change', autoCalcToTime);
-    oilHoursInput.addEventListener('change', autoCalcToTime);
-
-    // ── OIL: Status helpers ──────────────────────────────────────────────────
-    function showOilStatus(type, msg) {
-      const banner = document.getElementById('oilStatusBanner');
-      const spinner = document.getElementById('oilSpinner');
-      const msgEl = document.getElementById('oilStatusMessage');
-      banner.className = 'status-banner show ' + type;
-      msgEl.textContent = msg;
-      spinner.style.display = type === 'loading' ? 'block' : 'none';
-    }
-
-    // ── OIL: Submit ──────────────────────────────────────────────────────────
-    document.getElementById('oilForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const staffName = document.getElementById('staffName').value.trim();
-      const dateApplied = document.getElementById('dateApplied').value;
-      const oilDate = document.getElementById('oilDate').value;
-      const oilHours = document.getElementById('oilHours').value;
-      const reason = document.getElementById('reason').value.trim();
-      const hours = parseFloat(oilHours);
-      const isPartDay = !isNaN(hours) && hours < 10;
-
-      if (!staffName || !dateApplied || !oilDate || !oilHours || !reason) {
-        showOilStatus('error', '⚠ Please fill in all required fields.');
-        return;
-      }
-      if (isPartDay && (!oilTimeFrom.value || !oilTimeTo.value)) {
-        showOilStatus('error', '⚠ Please enter the OIL From Time and To Time.');
-        return;
+    <script>
+      // ── Tab switching ────────────────────────────────────────────────────────
+      function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
       }
 
-      document.getElementById('oilSubmitBtn').disabled = true;
-      showOilStatus('loading', 'Submitting your OIL claim, please wait…');
+      // ── OIL: Conditional time fields ─────────────────────────────────────────
+      const oilHoursInput = document.getElementById('oilHours');
+      const timeRangeRow = document.getElementById('timeRangeRow');
+      const timeRangeHint = document.getElementById('timeRangeHint');
+      const oilTimeFrom = document.getElementById('oilTimeFrom');
+      const oilTimeTo = document.getElementById('oilTimeTo');
 
-      try {
-        const payload = {
-          staffName, dateApplied, oilDate, oilHours,
-          oilTimeFrom: isPartDay ? oilTimeFrom.value : '',
-          oilTimeTo: isPartDay ? oilTimeTo.value : '', reason
-        };
-        const res = await fetch('/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showOilStatus('success', '✅ OIL claim submitted! Your manager has been notified.');
-          document.getElementById('oilForm').reset();
-          timeRangeRow.style.display = 'none';
-          timeRangeHint.style.display = 'none';
-        } else {
-          showOilStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+      function toggleTimeFields() {
+        const hours = parseFloat(oilHoursInput.value);
+        const showTime = !isNaN(hours) && hours < 10;
+        timeRangeRow.style.display = showTime ? 'flex' : 'none';
+        timeRangeHint.style.display = showTime ? 'block' : 'none';
+        oilTimeFrom.required = showTime;
+        oilTimeTo.required = showTime;
+      }
+      oilHoursInput.addEventListener('input', toggleTimeFields);
+
+      // ── OIL: Auto-calculate To Time ──────────────────────────────────────────
+      function autoCalcToTime() {
+        const fromVal = oilTimeFrom.value;
+        const hours = parseFloat(oilHoursInput.value);
+        if (!fromVal || isNaN(hours)) return;
+        const [h, m] = fromVal.split(':').map(Number);
+        const totalMins = h * 60 + m + Math.round(hours * 60);
+        const toH = Math.floor(totalMins / 60) % 24;
+        const toM = totalMins % 60;
+        oilTimeTo.value = String(toH).padStart(2, '0') + ':' + String(toM).padStart(2, '0');
+      }
+      oilTimeFrom.addEventListener('change', autoCalcToTime);
+      oilHoursInput.addEventListener('change', autoCalcToTime);
+
+      // ── OIL: Status helpers ──────────────────────────────────────────────────
+      function showOilStatus(type, msg) {
+        const banner = document.getElementById('oilStatusBanner');
+        const spinner = document.getElementById('oilSpinner');
+        const msgEl = document.getElementById('oilStatusMessage');
+        banner.className = 'status-banner show ' + type;
+        msgEl.textContent = msg;
+        spinner.style.display = type === 'loading' ? 'block' : 'none';
+      }
+
+      // ── OIL: Submit ──────────────────────────────────────────────────────────
+      document.getElementById('oilForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const staffName = document.getElementById('staffName').value.trim();
+        const dateApplied = document.getElementById('dateApplied').value;
+        const oilDate = document.getElementById('oilDate').value;
+        const oilHours = document.getElementById('oilHours').value;
+        const reason = document.getElementById('reason').value.trim();
+        const hours = parseFloat(oilHours);
+        const isPartDay = !isNaN(hours) && hours < 10;
+
+        if (!staffName || !dateApplied || !oilDate || !oilHours || !reason) {
+          showOilStatus('error', '⚠ Please fill in all required fields.');
+          return;
         }
-      } catch (err) {
-        showOilStatus('error', '❌ Network error. Please check your connection.');
-      } finally {
-        document.getElementById('oilSubmitBtn').disabled = false;
-      }
-    });
+        if (isPartDay && (!oilTimeFrom.value || !oilTimeTo.value)) {
+          showOilStatus('error', '⚠ Please enter the OIL From Time and To Time.');
+          return;
+        }
 
-    // ── OPD: File upload UI ──────────────────────────────────────────────────
-    const opdFileInput = document.getElementById('opdFile');
-    const opdUploadArea = document.getElementById('opdUploadArea');
-    const opdFileSelected = document.getElementById('opdFileSelected');
-    const opdFileNameEl = document.getElementById('opdFileName');
+        document.getElementById('oilSubmitBtn').disabled = true;
+        showOilStatus('loading', 'Submitting your OIL claim, please wait…');
 
-    opdFileInput.addEventListener('change', () => {
-      const f = opdFileInput.files[0];
-      if (f) {
-        opdFileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
-        opdFileSelected.classList.add('show');
-      } else {
-        opdFileSelected.classList.remove('show');
-      }
-    });
-    opdUploadArea.addEventListener('dragover', e => { e.preventDefault(); opdUploadArea.classList.add('drag-over'); });
-    opdUploadArea.addEventListener('dragleave', () => opdUploadArea.classList.remove('drag-over'));
-    opdUploadArea.addEventListener('drop', () => opdUploadArea.classList.remove('drag-over'));
+        try {
+          const payload = {
+            staffName, dateApplied, oilDate, oilHours,
+            oilTimeFrom: isPartDay ? oilTimeFrom.value : '',
+            oilTimeTo: isPartDay ? oilTimeTo.value : '', reason
+          };
+          const res = await fetch('/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showOilStatus('success', '✅ OIL claim submitted! Your manager has been notified.');
+            document.getElementById('oilForm').reset();
+            timeRangeRow.style.display = 'none';
+            timeRangeHint.style.display = 'none';
+          } else {
+            showOilStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+          }
+        } catch (err) {
+          showOilStatus('error', '❌ Network error. Please check your connection.');
+        } finally {
+          document.getElementById('oilSubmitBtn').disabled = false;
+        }
+      });
 
-    // ── OPD: Status helpers ──────────────────────────────────────────────────
-    function showOpdStatus(type, msg) {
-      const banner = document.getElementById('opdStatusBanner');
-      const spinner = document.getElementById('opdSpinner');
-      const msgEl = document.getElementById('opdStatusMessage');
-      banner.className = 'status-banner show ' + type;
-      msgEl.textContent = msg;
-      spinner.style.display = type === 'loading' ? 'block' : 'none';
-    }
+      // ── OPD: File upload UI ──────────────────────────────────────────────────
+      const opdFileInput = document.getElementById('opdFile');
+      const opdUploadArea = document.getElementById('opdUploadArea');
+      const opdFileSelected = document.getElementById('opdFileSelected');
+      const opdFileNameEl = document.getElementById('opdFileName');
 
-    // ── OPD: Submit ──────────────────────────────────────────────────────────
-    document.getElementById('opdForm').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const staffName = document.getElementById('opd_staffName').value.trim();
-      const treatmentDate = document.getElementById('treatmentDate').value;
-      const treatmentAmount = document.getElementById('treatmentAmount').value;
-      const diagnosis = document.getElementById('diagnosis').value.trim();
-      const file = opdFileInput.files[0];
-
-      if (!staffName || !treatmentDate || !treatmentAmount || !diagnosis) {
-        showOpdStatus('error', '⚠ Please fill in all required fields.');
-        return;
-      }
-      if (!file) {
-        showOpdStatus('error', '⚠ Please upload your receipt or medical document.');
-        return;
-      }
-      const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
-      if (!allowed.includes(file.type)) {
-        showOpdStatus('error', '⚠ Only JPG, PNG, or PDF files are accepted.');
-        return;
-      }
-      if (file.size > 10 * 1024 * 1024) {
-        showOpdStatus('error', '⚠ File size must be under 10 MB.');
-        return;
-      }
-
-      document.getElementById('opdSubmitBtn').disabled = true;
-      showOpdStatus('loading', 'Submitting your OPD claim, please wait…');
-
-      try {
-        const formData = new FormData();
-        formData.append('staffName', staffName);
-        formData.append('treatmentDate', treatmentDate);
-        formData.append('treatmentAmount', treatmentAmount);
-        formData.append('diagnosis', diagnosis);
-        formData.append('opdFile', file);
-
-        const res = await fetch('/submit-opd', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          showOpdStatus('success', '✅ OPD claim submitted! You can track its status in the live sheet.');
-          document.getElementById('opdForm').reset();
+      opdFileInput.addEventListener('change', () => {
+        const f = opdFileInput.files[0];
+        if (f) {
+          opdFileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+          opdFileSelected.classList.add('show');
+        } else {
           opdFileSelected.classList.remove('show');
-        } else {
-          showOpdStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
         }
-      } catch (err) {
-        showOpdStatus('error', '❌ Network error. Please check your connection.');
-      } finally {
-        document.getElementById('opdSubmitBtn').disabled = false;
-      }
-    });
+      });
+      opdUploadArea.addEventListener('dragover', e => { e.preventDefault(); opdUploadArea.classList.add('drag-over'); });
+      opdUploadArea.addEventListener('dragleave', () => opdUploadArea.classList.remove('drag-over'));
+      opdUploadArea.addEventListener('drop', () => opdUploadArea.classList.remove('drag-over'));
 
-    // Set default date to today
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('dateApplied').value = today;
-  </script>
+      // ── OPD: Status helpers ──────────────────────────────────────────────────
+      function showOpdStatus(type, msg) {
+        const banner = document.getElementById('opdStatusBanner');
+        const spinner = document.getElementById('opdSpinner');
+        const msgEl = document.getElementById('opdStatusMessage');
+        banner.className = 'status-banner show ' + type;
+        msgEl.textContent = msg;
+        spinner.style.display = type === 'loading' ? 'block' : 'none';
+      }
+
+      // ── OPD: Submit ──────────────────────────────────────────────────────────
+      document.getElementById('opdForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const staffName = document.getElementById('opd_staffName').value.trim();
+        const treatmentDate = document.getElementById('treatmentDate').value;
+        const treatmentAmount = document.getElementById('treatmentAmount').value;
+        const diagnosis = document.getElementById('diagnosis').value.trim();
+        const file = opdFileInput.files[0];
+
+        if (!staffName || !treatmentDate || !treatmentAmount || !diagnosis) {
+          showOpdStatus('error', '⚠ Please fill in all required fields.');
+          return;
+        }
+        if (!file) {
+          showOpdStatus('error', '⚠ Please upload your receipt or medical document.');
+          return;
+        }
+        const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+        if (!allowed.includes(file.type)) {
+          showOpdStatus('error', '⚠ Only JPG, PNG, or PDF files are accepted.');
+          return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showOpdStatus('error', '⚠ File size must be under 10 MB.');
+          return;
+        }
+
+        document.getElementById('opdSubmitBtn').disabled = true;
+        showOpdStatus('loading', 'Submitting your OPD claim, please wait…');
+
+        try {
+          const formData = new FormData();
+          formData.append('staffName', staffName);
+          formData.append('treatmentDate', treatmentDate);
+          formData.append('treatmentAmount', treatmentAmount);
+          formData.append('diagnosis', diagnosis);
+          formData.append('opdFile', file);
+
+          const res = await fetch('/submit-opd', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showOpdStatus('success', '✅ OPD claim submitted! You can track its status in the live sheet.');
+            document.getElementById('opdForm').reset();
+            opdFileSelected.classList.remove('show');
+          } else {
+            showOpdStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+          }
+        } catch (err) {
+          showOpdStatus('error', '❌ Network error. Please check your connection.');
+        } finally {
+          document.getElementById('opdSubmitBtn').disabled = false;
+        }
+      });
+
+      // Set default date to today
+      const today = new Date().toISOString().split('T')[0];
+      document.getElementById('dateApplied').value = today;
+    </script>
 
 </body>
 
