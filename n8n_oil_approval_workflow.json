@@ -20,7 +20,7 @@
         },
         {
             "parameters": {
-                "jsCode": "// Parse and validate the approval request\nconst query = $input.first().json.query || {};\n\nconst decision    = query.decision    || '';\nconst staffName   = decodeURIComponent(query.staffName   || '');\nconst submittedAt = decodeURIComponent(query.submittedAt || '');\n\nif (!['Approved', 'Rejected'].includes(decision)) {\n  throw new Error('Invalid decision. Must be Approved or Rejected.');\n}\nif (!staffName || !submittedAt) {\n  throw new Error('Missing staffName or submittedAt parameter.');\n}\n\nreturn [{\n  json: {\n    decision,\n    staffName,\n    submittedAt,\n    // Keys must EXACTLY match the sheet column headers (camelCase from Auto-Map mode)\n    validationStatus: decision\n  }\n}];\n"
+                "jsCode": "// Parse and validate the approval request\nconst query = $input.first().json.query || {};\n\nconst decision    = query.decision    || '';\nconst staffName   = decodeURIComponent(query.staffName   || '');\nconst submittedAt = decodeURIComponent(query.submittedAt || '');\n\nif (!['Approved', 'Rejected'].includes(decision)) {\n  throw new Error('Invalid decision. Must be Approved or Rejected.');\n}\nif (!staffName || !submittedAt) {\n  throw new Error('Missing staffName or submittedAt parameter.');\n}\n\nreturn [{\n  json: {\n    decision,\n    staffName,\n    submittedAt,\n    validationStatus: decision\n  }\n}];\n"
             },
             "id": "node_parse_decision",
             "name": "Parse Approval Request",
@@ -33,10 +33,91 @@
         },
         {
             "parameters": {
+                "operation": "getRows",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_OIL_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "Sheet1"
+                },
+                "filtersUI": {
+                    "values": [
+                        {
+                            "lookupColumn": "submittedAt",
+                            "lookupValue": "={{ $json.submittedAt }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "node_read_oil_row",
+            "name": "Read Current Row",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                680,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const row        = $input.first().json;\nconst parsed     = $('Parse Approval Request').first().json;\nconst currentStatus = (row.validationStatus || '').trim();\n\nif (currentStatus === 'Approved' || currentStatus === 'Rejected') {\n  // Already decided — return locked page\n  const emoji   = currentStatus === 'Approved' ? '✅' : '❌';\n  const color   = currentStatus === 'Approved' ? '#10b981' : '#ef4444';\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Already Processed</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">🔒</div>\n    <h1 style=\"color:#6366f1;font-size:24px;margin:0 0 12px\">Already Processed</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This OIL claim has already been <strong>${currentStatus}</strong> ${emoji} and cannot be changed.</p>\n    <div style=\"background:#f3f4f6;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Staff:</strong> ${parsed.staffName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:${color}\">🏷 <strong>Status:</strong> ${currentStatus}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">No further action is needed.</p>\n  </div>\n</body></html>`;\n  return [{ json: { html, locked: true, decision: currentStatus, staffName: parsed.staffName } }];\n}\n\n// Not yet decided — proceed\nreturn [{ json: { ...parsed, locked: false } }];\n"
+            },
+            "id": "node_check_lock_oil",
+            "name": "Check If Already Decided",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": false,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "locked-check",
+                            "leftValue": "={{ $json.locked }}",
+                            "rightValue": false,
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "equals"
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "node_if_not_locked_oil",
+            "name": "Is Not Yet Decided?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
                 "operation": "update",
                 "documentId": {
                     "mode": "list",
-                    "value": "REPLACE_WITH_YOUR_SHEET_ID"
+                    "value": "REPLACE_WITH_YOUR_OIL_SHEET_ID"
                 },
                 "sheetName": {
                     "mode": "list",
@@ -83,8 +164,8 @@
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
             "position": [
-                680,
-                300
+                1340,
+                200
             ],
             "credentials": {
                 "googleSheetsOAuth2Api": {
@@ -95,14 +176,14 @@
         },
         {
             "parameters": {
-                "jsCode": "const decision  = $('Parse Approval Request').first().json.decision;\nconst staffName = $('Parse Approval Request').first().json.staffName;\n\nconst isApproved = decision === 'Approved';\nconst emoji   = isApproved ? '✅' : '❌';\nconst color   = isApproved ? '#10b981' : '#ef4444';\nconst bgColor = isApproved ? '#ecfdf5'  : '#fef2f2';\nconst title   = isApproved ? 'Claim Approved!' : 'Claim Rejected';\nconst message = isApproved\n  ? `The OIL claim for <strong>${staffName}</strong> has been <strong>approved</strong> successfully.`\n  : `The OIL claim for <strong>${staffName}</strong> has been <strong>rejected</strong>.`;\n\nconst html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>${title}</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">${emoji}</div>\n    <h1 style=\"color:${color};font-size:26px;margin:0 0 12px\">${title}</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">${message}</p>\n    <div style=\"background:${bgColor};border:1px solid ${color}44;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Staff:</strong> ${staffName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">🏷 <strong>Decision:</strong> ${decision}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">The OIL Tracking Database has been updated automatically.</p>\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, decision, staffName } }];\n"
+                "jsCode": "const data      = $input.first().json;\nconst locked    = data.locked ?? false;\nconst decision  = data.decision;\nconst staffName = data.staffName;\n\nif (locked) {\n  return [{ json: { html: data.html } }];\n}\n\nconst isApproved = decision === 'Approved';\nconst emoji   = isApproved ? '✅' : '❌';\nconst color   = isApproved ? '#10b981' : '#ef4444';\nconst bgColor = isApproved ? '#ecfdf5'  : '#fef2f2';\nconst title   = isApproved ? 'Claim Approved!' : 'Claim Rejected';\nconst message = isApproved\n  ? `The OIL claim for <strong>${staffName}</strong> has been <strong>approved</strong> successfully.`\n  : `The OIL claim for <strong>${staffName}</strong> has been <strong>rejected</strong>.`;\n\nconst html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>${title}</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">${emoji}</div>\n    <h1 style=\"color:${color};font-size:26px;margin:0 0 12px\">${title}</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">${message}</p>\n    <div style=\"background:${bgColor};border:1px solid ${color}44;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Staff:</strong> ${staffName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">🏷 <strong>Decision:</strong> ${decision}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">The OIL Tracking Database has been updated automatically.</p>\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, decision, staffName } }];\n"
             },
             "id": "node_build_page",
             "name": "Build Confirmation Page",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
             "position": [
-                900,
+                1560,
                 300
             ]
         },
@@ -127,7 +208,7 @@
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1,
             "position": [
-                1120,
+                1780,
                 300
             ]
         }
@@ -148,7 +229,47 @@
             "main": [
                 [
                     {
+                        "node": "Read Current Row",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Read Current Row": {
+            "main": [
+                [
+                    {
+                        "node": "Check If Already Decided",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Check If Already Decided": {
+            "main": [
+                [
+                    {
+                        "node": "Is Not Yet Decided?",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Is Not Yet Decided?": {
+            "main": [
+                [
+                    {
                         "node": "Update Validation Status",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Build Confirmation Page",
                         "type": "main",
                         "index": 0
                     }
@@ -190,6 +311,6 @@
     ],
     "pinData": {},
     "meta": {
-        "instanceId": "oil-tracker-approval-v2"
+        "instanceId": "oil-tracker-approval-v3"
     }
 }
