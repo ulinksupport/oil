@@ -36,7 +36,7 @@
                 "operation": "getRows",
                 "documentId": {
                     "mode": "list",
-                    "value": "REPLACE_WITH_YOUR_OIL_SHEET_ID"
+                    "value": "12KpoT4P4iGxabIlwERKuV2F0MmBkQKmiuCso36sG5-o"
                 },
                 "sheetName": {
                     "mode": "list",
@@ -117,7 +117,7 @@
                 "operation": "update",
                 "documentId": {
                     "mode": "list",
-                    "value": "REPLACE_WITH_YOUR_OIL_SHEET_ID"
+                    "value": "12KpoT4P4iGxabIlwERKuV2F0MmBkQKmiuCso36sG5-o"
                 },
                 "sheetName": {
                     "mode": "list",
