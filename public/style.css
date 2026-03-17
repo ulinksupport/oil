@@ -235,24 +235,32 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
-/* File upload */
-.file-upload-area {
-  border: 2px dashed var(--glass-border);
+/* File upload zones */
+.upload-area {
+  border: 2px dashed rgba(99, 102, 241, 0.3);
   border-radius: var(--radius-sm);
-  padding: 32px 20px;
+  padding: 40px 24px;
   text-align: center;
   cursor: pointer;
   transition: var(--transition);
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
   position: relative;
+  min-height: 180px;
 }
 
-.file-upload-area:hover,
-.file-upload-area.drag-over {
+.upload-area:hover,
+.upload-area.drag-over {
   border-color: var(--accent);
   background: rgba(99, 102, 241, 0.06);
+  box-shadow: 0 0 25px var(--accent-glow);
 }
 
-.file-upload-area input[type="file"] {
+.upload-area input[type="file"] {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -261,27 +269,37 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   height: 100%;
 }
 
-.file-upload-icon {
-  font-size: 36px;
-  margin-bottom: 10px;
+.upload-icon {
+  width: 48px;
+  height: 48px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23818cf8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 2 0 00-5.656-5.656l-6.415 6.585a6 0 108.486 8.486L20.5 13' /%3E%3C/svg%3E") no-repeat center;
+  background-size: contain;
+  opacity: 0.8;
+  transition: var(--transition);
 }
 
-.file-upload-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-secondary);
+.upload-area:hover .upload-icon {
+  transform: translateY(-2px) scale(1.05);
+  opacity: 1;
 }
 
-.file-upload-label span {
+.upload-text {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.upload-text span {
   color: var(--accent-light);
   text-decoration: underline;
-  text-underline-offset: 3px;
+  text-underline-offset: 4px;
+  font-weight: 600;
 }
 
-.file-upload-hint {
+.upload-hint {
   font-size: 12px;
   color: var(--text-muted);
-  margin-top: 6px;
+  letter-spacing: 0.02em;
 }
 
 .field-hint {

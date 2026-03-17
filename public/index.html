@@ -195,16 +195,16 @@
           <div class="card-section">
             <div class="section-label">Receipt / Medical Document</div>
             <div class="form-group">
-              <label for="opdFile">Upload Receipt or Medical Certificate <span class="required">*</span></label>
-              <div class="file-upload-area" id="opdUploadArea">
-                <input type="file" id="opdFile" name="opdFile" accept="image/*,.pdf" required />
-                <div class="file-upload-icon">📎</div>
-                <div class="file-upload-label">Drag &amp; drop or <span>browse files</span></div>
-                <div class="file-upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</div>
+              <label>Upload Receipt or Medical Certificate <span class="required">*</span></label>
+              <div class="upload-area" id="opdUploadArea" onclick="document.getElementById('opdFile').click()">
+                <div class="upload-icon"></div>
+                <p class="upload-text">Drag & drop or <span>browse files</span></p>
+                <p class="upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</p>
+                <input type="file" id="opdFile" name="opdFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
               </div>
               <div class="file-selected" id="opdFileSelected">
-                <span>✅</span>
-                <span id="opdFileName"></span>
+                <span>📄</span>
+                <span id="opdFileName">No file selected</span>
               </div>
             </div>
           </div>
@@ -335,9 +335,9 @@
             <div class="form-group">
               <label>Upload Receipt / Quotation / Document <span class="required">*</span></label>
               <div class="upload-area" id="claimsUploadArea" onclick="document.getElementById('claimsFile').click()">
-                <div class="upload-icon">📎</div>
-                <p class="upload-text">Click to upload or drag & drop</p>
-                <p class="upload-hint">PDF, JPG, PNG — max 10 MB</p>
+                <div class="upload-icon"></div>
+                <p class="upload-text">Drag & drop or <span>browse files</span></p>
+                <p class="upload-hint">Accepted: JPG, PNG, PDF — Max 10 MB</p>
                 <input type="file" id="claimsFile" name="claimsFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
               </div>
               <div class="file-selected" id="claimsFileSelected">
