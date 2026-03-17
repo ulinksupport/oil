@@ -1,0 +1,229 @@
+{
+    "name": "Employee Claims — Approval Workflow",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "GET",
+                "path": "claims-approve",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "id": "node_webhook_approve",
+            "name": "Webhook — Approval Click",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                240,
+                300
+            ],
+            "webhookId": "claims-approve"
+        },
+        {
+            "parameters": {
+                "jsCode": "const query = $input.first().json.query;\nreturn [{\n  json: {\n    decision:     query.decision,\n    employeeName: query.employeeName,\n    submittedAt:  query.submittedAt\n  }\n}];"
+            },
+            "id": "node_parse_request",
+            "name": "Parse Approval Request",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "getRows",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_CLAIMS_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "Sheet1"
+                },
+                "filters": {
+                    "conditions": [
+                        {
+                            "column": "submittedAt",
+                            "value": "={{ $json.submittedAt }}"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "node_read_row",
+            "name": "Read Current Row",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                680,
+                300
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const currentData = $input.first().json;\nconst requestData = $('Parse Approval Request').first().json;\n\nconst status = currentData.claimStatus || 'Pending Review';\nconst isDecided = status === 'Approved' || status === 'Rejected';\n\nif (isDecided) {\n  const emoji = status === 'Approved' ? '✅' : '❌';\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Already Processed</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">🔒</div>\n    <h1 style=\"color:#6366f1;font-size:26px;margin:0 0 12px\">Already Processed</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This claim has already been <strong>${status} ${emoji}</strong> and cannot be changed.</p>\n    <div style=\"background:#f8f9fa;border:1px solid #eee;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Employee:</strong> ${requestData.employeeName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">🏷 <strong>Status:</strong> ${status} ${emoji}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">No further action is needed.</p>\n  </div>\n</body></html>`;\n  \n  return [{ json: { locked: true, html, employeeName: requestData.employeeName, decision: status } }];\n}\n\nreturn [{ json: { locked: false, employeeName: requestData.employeeName, decision: requestData.decision, submittedAt: requestData.submittedAt } }];"
+            },
+            "id": "node_check_lock",
+            "name": "Check If Already Decided",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                900,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "conditions": {
+                    "options": {
+                        "caseSensitive": true,
+                        "leftValue": "",
+                        "typeValidation": "strict"
+                    },
+                    "conditions": [
+                        {
+                            "id": "893c834a-9b19-4874-89c0-9a29d5b0789d",
+                            "leftValue": "={{ $json.locked }}",
+                            "rightValue": "",
+                            "operator": {
+                                "type": "boolean",
+                                "operation": "false",
+                                "singleValue": true
+                            }
+                        }
+                    ],
+                    "combinator": "and"
+                },
+                "options": {}
+            },
+            "id": "node_if_not_decided",
+            "name": "Is Not Yet Decided?",
+            "type": "n8n-nodes-base.if",
+            "typeVersion": 2,
+            "position": [
+                1120,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "operation": "update",
+                "documentId": {
+                    "mode": "list",
+                    "value": "REPLACE_WITH_YOUR_CLAIMS_SHEET_ID"
+                },
+                "sheetName": {
+                    "mode": "list",
+                    "value": "Sheet1"
+                },
+                "columns": {
+                    "mappingMode": "defineBelow",
+                    "matchingColumns": [
+                        "submittedAt"
+                    ],
+                    "value": {
+                        "submittedAt": "={{ $json.submittedAt }}",
+                        "claimStatus": "={{ $json.decision }}"
+                    },
+                    "schema": [
+                        {
+                            "id": "submittedAt",
+                            "displayName": "submittedAt",
+                            "type": "string",
+                            "canBeUsedToMatch": true
+                        },
+                        {
+                            "id": "claimStatus",
+                            "displayName": "claimStatus",
+                            "type": "string"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "id": "node_update_sheet",
+            "name": "Update Claim Status",
+            "type": "n8n-nodes-base.googleSheets",
+            "typeVersion": 4.2,
+            "position": [
+                1340,
+                200
+            ],
+            "credentials": {
+                "googleSheetsOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Google Sheets account 2"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const data      = $input.first().json;\nconst locked    = data.locked ?? false;\nconst parsed    = $('Parse Approval Request').first().json;\nconst decision  = data.decision  ?? parsed.decision;\nconst employeeName = data.employeeName ?? parsed.employeeName;\n\nif (locked) {\n  return [{ json: { html: data.html } }];\n}\n\nconst isApproved = decision === 'Approved';\nconst emoji   = isApproved ? '✅' : '❌';\nconst color   = isApproved ? '#10b981' : '#ef4444';\nconst bgColor = isApproved ? '#ecfdf5'  : '#fef2f2';\nconst title   = isApproved ? 'Claim Approved!' : 'Claim Rejected';\nconst message = isApproved\n  ? `The claim for <strong>${employeeName}</strong> has been <strong>approved</strong> successfully.`\n  : `The claim for <strong>${employeeName}</strong> has been <strong>rejected</strong>.`;\n\nconst html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>${title}</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">${emoji}</div>\n    <h1 style=\"color:${color};font-size:26px;margin:0 0 12px\">${title}</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">${message}</p>\n    <div style=\"background:${bgColor};border:1px solid ${color}44;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Employee:</strong> ${employeeName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">🏷 <strong>Decision:</strong> ${decision}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">The Claims Tracking Database has been updated automatically.</p>\n  </div>\n</body></html>`;\n\nreturn [{ json: { html, decision, employeeName } }];"
+            },
+            "id": "node_build_page",
+            "name": "Build Confirmation Page",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1560,
+                300
+            ]
+        },
+        {
+            "parameters": {
+                "respondWith": "text",
+                "responseBody": "={{ $json.html }}",
+                "options": {
+                    "responseCode": 200,
+                    "responseHeaders": {
+                        "entries": [
+                            {
+                                "name": "Content-Type",
+                                "value": "text/html; charset=utf-8"
+                            }
+                        ]
+                    }
+                }
+            },
+            "id": "node_respond",
+            "name": "Respond — Confirmation Page",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1,
+            "position": [
+                1780,
+                300
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook — Approval Click": { "main": [[{ "node": "Parse Approval Request", "type": "main", "index": 0 }]] },
+        "Parse Approval Request":   { "main": [[{ "node": "Read Current Row",        "type": "main", "index": 0 }]] },
+        "Read Current Row":        { "main": [[{ "node": "Check If Already Decided", "type": "main", "index": 0 }]] },
+        "Check If Already Decided": { "main": [[{ "node": "Is Not Yet Decided?",     "type": "main", "index": 0 }]] },
+        "Is Not Yet Decided?": {
+            "main": [
+                [{ "node": "Update Claim Status",     "type": "main", "index": 0 }],
+                [{ "node": "Build Confirmation Page", "type": "main", "index": 0 }]
+            ]
+        },
+        "Update Claim Status":      { "main": [[{ "node": "Build Confirmation Page", "type": "main", "index": 0 }]] },
+        "Build Confirmation Page": { "main": [[{ "node": "Respond — Confirmation Page", "type": "main", "index": 0 }]] }
+    },
+    "settings": {
+        "executionOrder": "v1",
+        "saveDataSuccessExecution": "all",
+        "saveDataErrorExecution": "all",
+        "saveManualExecutions": true
+    },
+    "meta": {
+        "instanceId": "claims-approval-v1"
+    }
+}
