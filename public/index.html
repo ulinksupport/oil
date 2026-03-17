@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Claims Portal | OIL & OPD Tracker</title>
+  <title>Claims Portal | OIL, OPD & Employee Claims</title>
   <meta name="description" content="Submit OIL (Off-in-Lieu) or OPD (Medical) claims." />
   <link rel="stylesheet" href="style.css" />
   <style>
@@ -68,6 +68,7 @@
     <div class="tab-nav">
       <button class="tab-btn active" id="tab-oil" onclick="switchTab('oil')">⏱ OIL Claim</button>
       <button class="tab-btn" id="tab-opd" onclick="switchTab('opd')">🏥 OPD Medical Claim</button>
+      <button class="tab-btn" id="tab-claims" onclick="switchTab('claims')">💼 Claims / Provider</button>
     </div>
 
     <!-- ═══════════════════════════════════════════════
@@ -231,6 +232,130 @@
         Management view? <a href="chat.html">Open OIL Query Assistant →</a>
       </p>
 
+    </div>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB 3 — Employee Claims / Provider Payment
+    ════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-claims">
+      <div class="card">
+        <form id="claimsForm" novalidate enctype="multipart/form-data">
+
+          <div class="card-section">
+            <div class="section-label">Employee Information</div>
+            <div class="form-group">
+              <label for="cl_employeeName">Employee Name <span class="required">*</span></label>
+              <input type="text" id="cl_employeeName" name="cl_employeeName" placeholder="e.g. Alice Tan" required autocomplete="name" />
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="card-section">
+            <div class="section-label">Claim Details</div>
+
+            <div class="form-group">
+              <label>Type <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="cl_type" value="Expense Claim by Employee" required /> Expense Claim by Employee</label>
+                <label class="radio-label"><input type="radio" name="cl_type" value="Request for Payment to Provider" /> Request for Payment to Provider</label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cl_submissionDate">Claim Submission Date <span class="required">*</span></label>
+                <input type="date" id="cl_submissionDate" name="cl_submissionDate" required />
+              </div>
+              <div class="form-group">
+                <label for="cl_paymentDate">Payment Incurred Date <span class="required">*</span></label>
+                <input type="text" id="cl_paymentDate" name="cl_paymentDate" placeholder="DD/MM/YYYY or NA if not paid yet" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="cl_description">Payment Description <span class="required">*</span></label>
+              <input type="text" id="cl_description" name="cl_description" placeholder="e.g. Grab, Office Supplies, etc." required />
+            </div>
+
+            <div class="form-group">
+              <label>Entity to be Charged <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="cl_entity" value="Ulink SG" required /> Ulink SG</label>
+                <label class="radio-label"><input type="radio" name="cl_entity" value="Ulink Myanmar" /> Ulink Myanmar</label>
+                <label class="radio-label"><input type="radio" name="cl_entity" value="SilverAlly" /> SilverAlly</label>
+                <label class="radio-label"><input type="radio" name="cl_entity" value="SilverFleet" /> SilverFleet</label>
+                <label class="radio-label"><input type="radio" name="cl_entity" value="Other" /> Other</label>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label for="cl_currency">Currency <span class="required">*</span></label>
+                <input type="text" id="cl_currency" name="cl_currency" placeholder="e.g. SGD, USD, RM" required />
+              </div>
+              <div class="form-group">
+                <label for="cl_amount">Amount <span class="required">*</span></label>
+                <input type="text" id="cl_amount" name="cl_amount" placeholder="e.g. 45.50" required />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Payment Mode <span class="required">*</span></label>
+              <div class="radio-group">
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="Payment not made yet" required /> Payment not made yet</label>
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="Cash" /> Cash</label>
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="PayNow" /> PayNow</label>
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="Online Transaction" /> Online Transaction</label>
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="Personal Credit Card" /> Personal Credit Card</label>
+                <label class="radio-label"><input type="radio" name="cl_paymentMode" value="Ulink Credit Card" /> Ulink Credit Card</label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="cl_cardDigits">If paid by Ulink Credit Card — last 4 digits <span class="required">*</span></label>
+              <input type="text" id="cl_cardDigits" name="cl_cardDigits" placeholder="e.g. 1234 (or NA)" required maxlength="10" />
+            </div>
+
+            <div class="form-group">
+              <label for="cl_approver">Claim Approved By <span class="required">*</span></label>
+              <select id="cl_approver" name="cl_approver" required style="width:100%;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;font-size:15px;outline:none;">
+                <option value="" disabled selected>— Select approver —</option>
+                <option value="Tan Chien Wei">Tan Chien Wei</option>
+                <option value="Galvin Moh">Galvin Moh</option>
+                <option value="Sharon">Sharon</option>
+              </select>
+            </div>
+          </div>
+
+          <hr class="divider" />
+
+          <div class="card-section">
+            <div class="section-label">Supporting Documents</div>
+            <div class="form-group">
+              <label>Upload Receipt / Quotation / Document <span class="required">*</span></label>
+              <div class="upload-area" id="claimsUploadArea" onclick="document.getElementById('claimsFile').click()">
+                <div class="upload-icon">📎</div>
+                <p class="upload-text">Click to upload or drag & drop</p>
+                <p class="upload-hint">PDF, JPG, PNG — max 10 MB</p>
+                <input type="file" id="claimsFile" name="claimsFile" accept=".pdf,.jpg,.jpeg,.png" style="display:none" />
+              </div>
+              <div class="file-selected" id="claimsFileSelected">
+                <span>📄</span>
+                <span id="claimsFileName">No file selected</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="status-banner" id="claimsStatusBanner">
+            <div class="spinner" id="claimsSpinner" style="display:none"></div>
+            <span id="claimsStatusMessage"></span>
+          </div>
+
+          <button type="submit" class="submit-btn" id="claimsSubmitBtn">💼 Submit Claim</button>
+
+        </form>
+      </div>
     </div>
 
     <script>
@@ -415,6 +540,100 @@
       // Set default date to today
       const today = new Date().toISOString().split('T')[0];
       document.getElementById('dateApplied').value = today;
+      document.getElementById('cl_submissionDate').value = today;
+
+      // ── Claims: File upload UI ───────────────────────────────────────────────
+      const claimsFileInput = document.getElementById('claimsFile');
+      const claimsUploadArea = document.getElementById('claimsUploadArea');
+      const claimsFileSelected = document.getElementById('claimsFileSelected');
+      const claimsFileNameEl = document.getElementById('claimsFileName');
+
+      claimsFileInput.addEventListener('change', () => {
+        const f = claimsFileInput.files[0];
+        if (f) {
+          claimsFileNameEl.textContent = f.name + ' (' + (f.size / 1024 / 1024).toFixed(2) + ' MB)';
+          claimsFileSelected.classList.add('show');
+        } else {
+          claimsFileSelected.classList.remove('show');
+        }
+      });
+      claimsUploadArea.addEventListener('dragover', e => { e.preventDefault(); claimsUploadArea.classList.add('drag-over'); });
+      claimsUploadArea.addEventListener('dragleave', () => claimsUploadArea.classList.remove('drag-over'));
+      claimsUploadArea.addEventListener('drop', e => { e.preventDefault(); claimsUploadArea.classList.remove('drag-over'); if (e.dataTransfer.files[0]) { claimsFileInput.files = e.dataTransfer.files; claimsFileInput.dispatchEvent(new Event('change')); } });
+
+      // ── Claims: Status helpers ───────────────────────────────────────────────
+      function showClaimsStatus(type, msg) {
+        const banner = document.getElementById('claimsStatusBanner');
+        const spinner = document.getElementById('claimsSpinner');
+        const msgEl = document.getElementById('claimsStatusMessage');
+        banner.className = 'status-banner show ' + type;
+        msgEl.textContent = msg;
+        spinner.style.display = type === 'loading' ? 'block' : 'none';
+      }
+
+      // ── Claims: Submit ───────────────────────────────────────────────────────
+      document.getElementById('claimsForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const employeeName   = document.getElementById('cl_employeeName').value.trim();
+        const type           = document.querySelector('input[name="cl_type"]:checked')?.value || '';
+        const submissionDate = document.getElementById('cl_submissionDate').value;
+        const paymentDate    = document.getElementById('cl_paymentDate').value.trim();
+        const description    = document.getElementById('cl_description').value.trim();
+        const entity         = document.querySelector('input[name="cl_entity"]:checked')?.value || '';
+        const currency       = document.getElementById('cl_currency').value.trim();
+        const amount         = document.getElementById('cl_amount').value.trim();
+        const paymentMode    = document.querySelector('input[name="cl_paymentMode"]:checked')?.value || '';
+        const cardDigits     = document.getElementById('cl_cardDigits').value.trim();
+        const approver       = document.getElementById('cl_approver').value;
+        const file           = claimsFileInput.files[0];
+
+        if (!employeeName || !type || !submissionDate || !paymentDate || !description || !entity || !currency || !amount || !paymentMode || !cardDigits || !approver) {
+          showClaimsStatus('error', '⚠ Please fill in all required fields.');
+          return;
+        }
+        if (!file) {
+          showClaimsStatus('error', '⚠ Please upload a supporting document.');
+          return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+          showClaimsStatus('error', '⚠ File size must be under 10 MB.');
+          return;
+        }
+
+        document.getElementById('claimsSubmitBtn').disabled = true;
+        showClaimsStatus('loading', 'Submitting your claim, please wait…');
+
+        try {
+          const formData = new FormData();
+          formData.append('employeeName',   employeeName);
+          formData.append('type',           type);
+          formData.append('submissionDate', submissionDate);
+          formData.append('paymentDate',    paymentDate);
+          formData.append('description',    description);
+          formData.append('entity',         entity);
+          formData.append('currency',       currency);
+          formData.append('amount',         amount);
+          formData.append('paymentMode',    paymentMode);
+          formData.append('cardDigits',     cardDigits);
+          formData.append('approver',       approver);
+          formData.append('claimsFile',     file);
+
+          const res = await fetch('/submit-claims', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            showClaimsStatus('success', '✅ Claim submitted! Your approver has been notified.');
+            document.getElementById('claimsForm').reset();
+            claimsFileSelected.classList.remove('show');
+            document.getElementById('cl_submissionDate').value = today;
+          } else {
+            showClaimsStatus('error', '❌ ' + (data.error || 'Submission failed. Please try again.'));
+          }
+        } catch (err) {
+          showClaimsStatus('error', '❌ Network error. Please check your connection.');
+        } finally {
+          document.getElementById('claimsSubmitBtn').disabled = false;
+        }
+      });
     </script>
 
 </body>

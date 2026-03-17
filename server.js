@@ -114,6 +114,39 @@ app.post('/submit-opd', upload.single('opdFile'), async (req, res) => {
     }
 });
 
+// ── POST /submit-claims  (Employee Claims / Provider Payment — multipart) ────
+app.post('/submit-claims', upload.single('claimsFile'), async (req, res) => {
+    try {
+        const required = ['employeeName', 'type', 'submissionDate', 'paymentDate', 'description', 'entity', 'currency', 'amount', 'paymentMode', 'cardDigits', 'approver'];
+        for (const field of required) {
+            if (!req.body[field] || !req.body[field].toString().trim())
+                return res.status(400).json({ success: false, error: `Missing required field: ${field}` });
+        }
+        if (!req.file)
+            return res.status(400).json({ success: false, error: 'Supporting document is required.' });
+
+        const webhookUrl = process.env.N8N_CLAIMS_WEBHOOK;
+        if (!webhookUrl)
+            return res.status(500).json({ success: false, error: 'N8N_CLAIMS_WEBHOOK not set.' });
+
+        const form = new FormData();
+        const fields = ['employeeName','type','submissionDate','paymentDate','description','entity','currency','amount','paymentMode','cardDigits','approver'];
+        fields.forEach(f => form.append(f, req.body[f].trim ? req.body[f].trim() : req.body[f]));
+        form.append('claimsFile', req.file.buffer, { filename: req.file.originalname, contentType: req.file.mimetype });
+
+        const n8nRes = await axios.post(webhookUrl, form, { headers: form.getHeaders(), timeout: 30000 });
+        if (n8nRes.data?.success === false)
+            return res.status(422).json({ success: false, error: n8nRes.data.error });
+
+        return res.json({ success: true, message: 'Claim submitted successfully.' });
+    } catch (err) {
+        console.error('[/submit-claims error]', err.message);
+        if (err.message?.includes('Only JPG'))
+            return res.status(400).json({ success: false, error: err.message });
+        return res.status(500).json({ success: false, error: 'Submission failed. Please try again.' });
+    }
+});
+
 // ── POST /query ──────────────────────────────────────────────────────────────
 app.post('/query', async (req, res) => {
     try {
