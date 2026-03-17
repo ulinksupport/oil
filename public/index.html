@@ -268,8 +268,8 @@
                 <input type="date" id="cl_submissionDate" name="cl_submissionDate" required />
               </div>
               <div class="form-group">
-                <label for="cl_paymentDate">Payment Incurred Date <span class="required">*</span></label>
-                <input type="text" id="cl_paymentDate" name="cl_paymentDate" placeholder="DD/MM/YYYY or NA if not paid yet" required />
+                <label for="cl_paymentDate">Payment Incurred Date <small style="opacity:0.7">(Optional if not paid)</small></label>
+                <input type="date" id="cl_paymentDate" name="cl_paymentDate" />
               </div>
             </div>
 
@@ -587,7 +587,7 @@
         const approver       = document.getElementById('cl_approver').value;
         const file           = claimsFileInput.files[0];
 
-        if (!employeeName || !type || !submissionDate || !paymentDate || !description || !entity || !currency || !amount || !paymentMode || !cardDigits || !approver) {
+        if (!employeeName || !type || !submissionDate || !description || !entity || !currency || !amount || !paymentMode || !cardDigits || !approver) {
           showClaimsStatus('error', '⚠ Please fill in all required fields.');
           return;
         }
