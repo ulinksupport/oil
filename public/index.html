@@ -195,7 +195,7 @@
           <div class="card-section">
             <div class="section-label">Receipt / Medical Document</div>
             <div class="form-group">
-              <label>Upload Receipt or Medical Certificate <span class="required">*</span></label>
+              <label>Upload Discharge / Medical Note with Receipt <span class="required">*</span></label>
               <div class="upload-area" id="opdUploadArea" onclick="document.getElementById('opdFile').click()">
                 <div class="upload-icon"></div>
                 <p class="upload-text">Drag & drop or <span>browse files</span></p>
@@ -471,8 +471,18 @@
       });
       opdUploadArea.addEventListener('dragover', e => { e.preventDefault(); opdUploadArea.classList.add('drag-over'); });
       opdUploadArea.addEventListener('dragleave', () => opdUploadArea.classList.remove('drag-over'));
-      opdUploadArea.addEventListener('drop', () => opdUploadArea.classList.remove('drag-over'));
-
+      opdUploadArea.addEventListener('drop', e => {
+        e.preventDefault();
+        opdUploadArea.classList.remove('drag-over');
+        if (e.dataTransfer.files[0]) {
+          const dt = e.dataTransfer;
+          const file = dt.files[0];
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(file);
+          opdFileInput.files = dataTransfer.files;
+          opdFileInput.dispatchEvent(new Event('change'));
+        }
+      });
       // ── OPD: Status helpers ──────────────────────────────────────────────────
       function showOpdStatus(type, msg) {
         const banner = document.getElementById('opdStatusBanner');

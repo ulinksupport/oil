@@ -14,10 +14,7 @@
             "name": "Webhook — Receive OPD Form",
             "type": "n8n-nodes-base.webhook",
             "typeVersion": 2,
-            "position": [
-                240,
-                300
-            ],
+            "position": [240, 300],
             "webhookId": "opd-submit"
         },
         {
@@ -28,15 +25,12 @@
             "name": "Validate OPD Fields",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                460,
-                300
-            ]
+            "position": [460, 300]
         },
         {
             "parameters": {
                 "method": "PUT",
-                "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/odp/{{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : 'jpg') }}:/content",
+                "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/odp/{{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : ($binary?.opdFile?.mimeType === 'image/png' ? 'png' : 'jpg')) }}:/content",
                 "authentication": "predefinedCredentialType",
                 "nodeCredentialType": "microsoftOneDriveOAuth2Api",
                 "sendBody": true,
@@ -48,10 +42,7 @@
             "name": "Upload Receipt to OneDrive",
             "type": "n8n-nodes-base.httpRequest",
             "typeVersion": 4.2,
-            "position": [
-                680,
-                300
-            ],
+            "position": [680, 300],
             "credentials": {
                 "microsoftOneDriveOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -61,16 +52,36 @@
         },
         {
             "parameters": {
-                "jsCode": "const oneDriveData = $input.first().json;\nconst fileLink  = oneDriveData.webUrl || oneDriveData['@microsoft.graph.downloadUrl'] || 'N/A';\nconst prevData  = $('Validate OPD Fields').first().json;\nreturn [{ json: { ...prevData, receiptLink: fileLink } }];\n"
+                "method": "POST",
+                "url": "={{ 'https://graph.microsoft.com/v1.0/me/drive/items/' + $json.id + '/createLink' }}",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "microsoftOneDriveOAuth2Api",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={ \"type\": \"view\", \"scope\": \"organization\" }",
+                "options": {}
+            },
+            "id": "node_create_share_link",
+            "name": "Create Shareable Link",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [900, 300],
+            "credentials": {
+                "microsoftOneDriveOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Microsoft OneDrive account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const shareData = $input.first().json;\n// The shareable link is in shareData.link.webUrl\nconst fileLink  = (shareData.link && shareData.link.webUrl) ? shareData.link.webUrl : (shareData.webUrl || 'N/A');\nconst prevData  = $('Validate OPD Fields').first().json;\nreturn [{ json: { ...prevData, receiptLink: fileLink } }];\n"
             },
             "id": "node_extract_link",
             "name": "Extract Drive Link",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                900,
-                300
-            ]
+            "position": [1120, 300]
         },
         {
             "parameters": {
@@ -93,10 +104,7 @@
             "name": "Append Row to OPD Sheet",
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
-            "position": [
-                1120,
-                300
-            ],
+            "position": [1340, 300],
             "credentials": {
                 "googleSheetsOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -112,10 +120,7 @@
             "name": "Build Notification Email",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                1340,
-                300
-            ]
+            "position": [1560, 300]
         },
         {
             "parameters": {
@@ -123,10 +128,9 @@
                 "operation": "send",
                 "toList": [
                     "gm@ulinkassist.com",
-                    "claims1@ulinkassist.com",
                     "finance@ulinkassist.com"
                 ],
-                "subject": "=🏥 OPD Claim — {{ $json.staffName }} (RM {{ $json.treatmentAmount }} on {{ $json.treatmentDate }})",
+                "subject": "=🏥 OPD Claim — {{ $json.staffName }} ({{ $json.treatmentAmount }} on {{ $json.treatmentDate }})",
                 "emailType": "html",
                 "message": "={{ $json.emailHtml }}",
                 "options": {}
@@ -135,10 +139,7 @@
             "name": "Send Notification Email",
             "type": "n8n-nodes-base.gmail",
             "typeVersion": 2.1,
-            "position": [
-                1560,
-                300
-            ],
+            "position": [1780, 300],
             "credentials": {
                 "gmailOAuth2": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -158,90 +159,18 @@
             "name": "Respond — Success",
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1,
-            "position": [
-                1780,
-                300
-            ]
+            "position": [2000, 300]
         }
     ],
     "connections": {
-        "Webhook — Receive OPD Form": {
-            "main": [
-                [
-                    {
-                        "node": "Validate OPD Fields",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Validate OPD Fields": {
-            "main": [
-                [
-                    {
-                        "node": "Upload Receipt to OneDrive",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Upload Receipt to OneDrive": {
-            "main": [
-                [
-                    {
-                        "node": "Extract Drive Link",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Extract Drive Link": {
-            "main": [
-                [
-                    {
-                        "node": "Append Row to OPD Sheet",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Append Row to OPD Sheet": {
-            "main": [
-                [
-                    {
-                        "node": "Build Notification Email",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Build Notification Email": {
-            "main": [
-                [
-                    {
-                        "node": "Send Notification Email",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        },
-        "Send Notification Email": {
-            "main": [
-                [
-                    {
-                        "node": "Respond — Success",
-                        "type": "main",
-                        "index": 0
-                    }
-                ]
-            ]
-        }
+        "Webhook — Receive OPD Form":    { "main": [[{ "node": "Validate OPD Fields",         "type": "main", "index": 0 }]] },
+        "Validate OPD Fields":           { "main": [[{ "node": "Upload Receipt to OneDrive",   "type": "main", "index": 0 }]] },
+        "Upload Receipt to OneDrive":    { "main": [[{ "node": "Create Shareable Link",        "type": "main", "index": 0 }]] },
+        "Create Shareable Link":         { "main": [[{ "node": "Extract Drive Link",           "type": "main", "index": 0 }]] },
+        "Extract Drive Link":            { "main": [[{ "node": "Append Row to OPD Sheet",      "type": "main", "index": 0 }]] },
+        "Append Row to OPD Sheet":       { "main": [[{ "node": "Build Notification Email",     "type": "main", "index": 0 }]] },
+        "Build Notification Email":      { "main": [[{ "node": "Send Notification Email",      "type": "main", "index": 0 }]] },
+        "Send Notification Email":       { "main": [[{ "node": "Respond — Success",            "type": "main", "index": 0 }]] }
     },
     "settings": {
         "executionOrder": "v1",
@@ -249,10 +178,8 @@
         "saveDataErrorExecution": "all"
     },
     "staticData": null,
-    "tags": [
-        "opd-claims"
-    ],
+    "tags": ["opd-claims"],
     "meta": {
-        "instanceId": "opd-claims-submission-v1"
+        "instanceId": "opd-claims-submission-v2"
     }
 }
