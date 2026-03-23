@@ -352,10 +352,18 @@
             <span id="claimsStatusMessage"></span>
           </div>
 
-          <button type="submit" class="submit-btn" id="claimsSubmitBtn">💼 Submit Claim</button>
+          <button type="submit" class="btn-submit" id="claimsSubmitBtn">
+            <span class="btn-icon">💼</span> Submit Claim
+          </button>
 
         </form>
       </div>
+
+      <!-- Claims Tracker link -->
+      <p style="text-align:center; margin-top:16px; font-size:13px; opacity:0.7;">
+        📊 <a href="claims-tracker.html" target="_blank" style="color:var(--accent-light,#a78bfa);">View live Claims status →</a>
+      </p>
+
     </div>
 
     <script>
@@ -597,8 +605,13 @@
         const approver       = document.getElementById('cl_approver').value;
         const file           = claimsFileInput.files[0];
 
-        if (!employeeName || !type || !submissionDate || !description || !entity || !currency || !amount || !paymentMode || !cardDigits || !approver) {
+        const needsCardDigits = paymentMode === 'Ulink Credit Card';
+        if (!employeeName || !type || !submissionDate || !description || !entity || !currency || !amount || !paymentMode || !approver) {
           showClaimsStatus('error', '⚠ Please fill in all required fields.');
+          return;
+        }
+        if (needsCardDigits && !cardDigits) {
+          showClaimsStatus('error', '⚠ Please enter the last 4 digits of the Ulink Credit Card.');
           return;
         }
         if (!file) {
