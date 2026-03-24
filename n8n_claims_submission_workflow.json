@@ -30,7 +30,7 @@
         {
             "parameters": {
                 "method": "PUT",
-                "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/claims 2026/{{ $json.employeeName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.submissionDate + '_Claim.' + ($binary?.claimsFile?.mimeType === 'application/pdf' ? 'pdf' : ($binary?.claimsFile?.mimeType === 'image/png' ? 'png' : 'jpg')) }}:/content",
+                "url": "={{ 'https://graph.microsoft.com/v1.0/me/drive/root:/OPD Claim 2026/' + $json.employeeName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.submissionDate + '_Claim.' + ($binary?.claimsFile?.mimeType === 'application/pdf' ? 'pdf' : ($binary?.claimsFile?.mimeType === 'image/png' ? 'png' : 'jpg')) + ':/content' }}",
                 "authentication": "predefinedCredentialType",
                 "nodeCredentialType": "microsoftOneDriveOAuth2Api",
                 "sendBody": true,
@@ -52,13 +52,36 @@
         },
         {
             "parameters": {
-                "jsCode": "const oneDriveData = $input.first().json;\nconst fileLink  = oneDriveData.webUrl || oneDriveData['@microsoft.graph.downloadUrl'] || 'N/A';\nconst prevData  = $('Validate & Map Fields').first().json;\nreturn [{ json: { ...prevData, documentLink: fileLink } }];\n"
+                "method": "POST",
+                "url": "={{ 'https://graph.microsoft.com/v1.0/me/drive/items/' + $json.id + '/createLink' }}",
+                "authentication": "predefinedCredentialType",
+                "nodeCredentialType": "microsoftOneDriveOAuth2Api",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={ \"type\": \"view\", \"scope\": \"organization\" }",
+                "options": {}
+            },
+            "id": "node_create_share_link_claims",
+            "name": "Create Shareable Link",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [900, 300],
+            "credentials": {
+                "microsoftOneDriveOAuth2Api": {
+                    "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
+                    "name": "Microsoft OneDrive account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "jsCode": "const shareData = $input.first().json;\nconst fileLink  = (shareData.link && shareData.link.webUrl) ? shareData.link.webUrl : (shareData.webUrl || 'N/A');\nconst prevData  = $('Validate & Map Fields').first().json;\nreturn [{ json: { ...prevData, documentLink: fileLink } }];\n"
             },
             "id": "node_extract_link_claims",
             "name": "Extract Drive Link",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [900, 300]
+            "position": [1120, 300]
         },
         {
             "parameters": {
@@ -81,7 +104,7 @@
             "name": "Append Row to Google Sheet",
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
-            "position": [1120, 300],
+            "position": [1340, 300],
             "credentials": {
                 "googleSheetsOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -97,7 +120,7 @@
             "name": "Build Notification Email",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [1340, 300]
+            "position": [1560, 300]
         },
         {
             "parameters": {
@@ -113,7 +136,7 @@
             "name": "Send Notification Email",
             "type": "n8n-nodes-base.gmail",
             "typeVersion": 2.1,
-            "position": [1560, 300],
+            "position": [1780, 300],
             "credentials": {
                 "gmailOAuth2": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -131,13 +154,14 @@
             "name": "Respond — Success",
             "type": "n8n-nodes-base.respondToWebhook",
             "typeVersion": 1,
-            "position": [1780, 300]
+            "position": [2000, 300]
         }
     ],
     "connections": {
         "Webhook — Receive Claims Form":  { "main": [[{ "node": "Validate & Map Fields",        "type": "main", "index": 0 }]] },
         "Validate & Map Fields":          { "main": [[{ "node": "Upload Document to OneDrive",   "type": "main", "index": 0 }]] },
-        "Upload Document to OneDrive":    { "main": [[{ "node": "Extract Drive Link",             "type": "main", "index": 0 }]] },
+        "Upload Document to OneDrive":    { "main": [[{ "node": "Create Shareable Link",          "type": "main", "index": 0 }]] },
+        "Create Shareable Link":          { "main": [[{ "node": "Extract Drive Link",             "type": "main", "index": 0 }]] },
         "Extract Drive Link":             { "main": [[{ "node": "Append Row to Google Sheet",     "type": "main", "index": 0 }]] },
         "Append Row to Google Sheet":     { "main": [[{ "node": "Build Notification Email",       "type": "main", "index": 0 }]] },
         "Build Notification Email":       { "main": [[{ "node": "Send Notification Email",        "type": "main", "index": 0 }]] },
