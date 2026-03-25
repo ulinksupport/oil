@@ -36,11 +36,11 @@
                     "mode": "list",
                     "value": "Sheet1"
                 },
-                "filtersUI": {
-                    "values": [
+                "filters": {
+                    "conditions": [
                         {
-                            "lookupColumn": "submittedAt",
-                            "lookupValue": "={{ $json.submittedAt }}"
+                            "column": "submittedAt",
+                            "value": "={{ $json.submittedAt }}"
                         }
                     ]
                 },
