@@ -30,7 +30,7 @@
         {
             "parameters": {
                 "method": "PUT",
-                "url": "=https://graph.microsoft.com/v1.0/me/drive/root:/odp/{{ $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : ($binary?.opdFile?.mimeType === 'image/png' ? 'png' : 'jpg')) }}:/content",
+                "url": "={{ 'https://graph.microsoft.com/v1.0/me/drive/root:/ODP claim/' + $json.staffName.replace(/[^a-zA-Z0-9]/g,'_') + '_' + $json.treatmentDate + '_OPD_Receipt.' + ($binary?.opdFile?.mimeType === 'application/pdf' ? 'pdf' : ($binary?.opdFile?.mimeType === 'image/png' ? 'png' : 'jpg')) + ':/content' }}",
                 "authentication": "predefinedCredentialType",
                 "nodeCredentialType": "microsoftOneDriveOAuth2Api",
                 "sendBody": true,
