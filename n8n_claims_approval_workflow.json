@@ -42,14 +42,6 @@
                     "mode": "list",
                     "value": "Sheet1"
                 },
-                "filters": {
-                    "conditions": [
-                        {
-                            "column": "submittedAt",
-                            "value": "={{ $json.submittedAt }}"
-                        }
-                    ]
-                },
                 "options": {
                     "alwaysOutputData": true
                 }
@@ -58,10 +50,7 @@
             "name": "Read Current Row",
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
-            "position": [
-                680,
-                300
-            ],
+            "position": [680, 300],
             "credentials": {
                 "googleSheetsOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -71,16 +60,13 @@
         },
         {
             "parameters": {
-                "jsCode": "const currentData = $input.first().json;\nconst requestData = $('Parse Approval Request').first().json;\n\n// If record not found, we can't update but we should still show a page\nif (!currentData || Object.keys(currentData).length === 0 || !currentData.submittedAt) {\n  return [{\n    json: {\n      locked: true,\n      employeeName: requestData.employeeName,\n      decision: requestData.decision,\n      html: `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Claim Not Found</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">\u2753</div>\n    <h1 style=\"color:#f59e0b;font-size:26px;margin:0 0 12px\">Claim Not Found</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">We couldn't find a pending claim matching this request in the database.</p>\n    <p style=\"color:#999;font-size:12px\">Timestamp: ${requestData.submittedAt}</p>\n  </div>\n</body></html>`\n    }\n  }];\n}\n\nconst status = currentData.claimStatus || 'Pending Review';\nconst isDecided = status === 'Approved' || status === 'Rejected';\n\nif (isDecided) {\n  const emoji = status === 'Approved' ? '\u2705' : '\u274c';\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Already Processed</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">\ud83d\udd12</div>\n    <h1 style=\"color:#6366f1;font-size:26px;margin:0 0 12px\">Already Processed</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This claim has already been <strong>${status} ${emoji}</strong> and cannot be changed.</p>\n    <div style=\"background:#f8f9fa;border:1px solid #eee;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">\ud83d\udc64 <strong>Employee:</strong> ${requestData.employeeName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">\ud83c\udff7 <strong>Status:</strong> ${status} ${emoji}</p>\n    </div>\n  </div>\n</body></html>`;\n  \n  return [{ json: { locked: true, html, employeeName: requestData.employeeName, decision: status } }];\n}\n\nreturn [{ json: { locked: false, employeeName: requestData.employeeName, decision: requestData.decision, submittedAt: requestData.submittedAt } }];"
+                "jsCode": "// Read the original request info\nconst requestData = $('Parse Approval Request').first().json;\nconst targetTimestamp = requestData.submittedAt;\n\n// Search ALL rows from the sheet to find the matching one\nconst allRows = $input.all();\nconst matchedRow = allRows.find(item => item.json.submittedAt === targetTimestamp);\n\n// Row not found at all\nif (!matchedRow) {\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Claim Not Found</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center\">\n  <div style=\"max-width:460px;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">\u2753</div>\n    <h1 style=\"color:#f59e0b;font-size:26px;margin:0 0 12px\">Claim Not Found</h1>\n    <p style=\"color:#555;font-size:15px\">We couldn't find this claim in the database.</p>\n    <p style=\"color:#999;font-size:12px;margin-top:16px\">Ref: ${targetTimestamp}</p>\n  </div>\n</body></html>`;\n  return [{ json: { locked: true, html, employeeName: requestData.employeeName, decision: requestData.decision } }];\n}\n\n// Check current status — if already decided, LOCK\nconst currentStatus = (matchedRow.json.claimStatus || '').trim();\nconst isDecided = currentStatus === 'Approved' || currentStatus === 'Rejected';\n\nif (isDecided) {\n  const emoji = currentStatus === 'Approved' ? '\u2705' : '\u274c';\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Already Processed</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center\">\n  <div style=\"max-width:460px;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">\ud83d\udd12</div>\n    <h1 style=\"color:#6366f1;font-size:26px;margin:0 0 12px\">Already Processed</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This claim has already been <strong>${currentStatus} ${emoji}</strong> and cannot be changed.</p>\n    <div style=\"background:#f8f9fa;border:1px solid #eee;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">\ud83d\udc64 <strong>Employee:</strong> ${requestData.employeeName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">\ud83c\udff7 <strong>Final Status:</strong> ${currentStatus} ${emoji}</p>\n    </div>\n  </div>\n</body></html>`;\n  return [{ json: { locked: true, html, employeeName: requestData.employeeName, decision: currentStatus } }];\n}\n\n// Not decided yet — proceed with the update\nreturn [{ json: { locked: false, employeeName: requestData.employeeName, decision: requestData.decision, submittedAt: requestData.submittedAt } }];"
             },
             "id": "node_check_lock",
             "name": "Check If Already Decided",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                900,
-                300
-            ]
+            "position": [900, 300]
         },
         {
             "parameters": {

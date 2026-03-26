@@ -42,24 +42,13 @@
                     "mode": "list",
                     "value": "Sheet1"
                 },
-                "filters": {
-                    "conditions": [
-                        {
-                            "column": "submittedAt",
-                            "value": "={{ $json.submittedAt }}"
-                        }
-                    ]
-                },
-                "options": {}
+                "options": { "alwaysOutputData": true }
             },
             "id": "node_read_oil_row",
             "name": "Read Current Row",
             "type": "n8n-nodes-base.googleSheets",
             "typeVersion": 4.2,
-            "position": [
-                680,
-                300
-            ],
+            "position": [680, 300],
             "credentials": {
                 "googleSheetsOAuth2Api": {
                     "id": "REPLACE_WITH_YOUR_CREDENTIAL_ID",
@@ -69,16 +58,13 @@
         },
         {
             "parameters": {
-                "jsCode": "const row        = $input.first().json;\nconst parsed     = $('Parse Approval Request').first().json;\nconst currentStatus = (row.validationStatus || '').trim();\n\nif (currentStatus === 'Approved' || currentStatus === 'Rejected') {\n  // Already decided — return locked page\n  const emoji   = currentStatus === 'Approved' ? '✅' : '❌';\n  const color   = currentStatus === 'Approved' ? '#10b981' : '#ef4444';\n  const html = `<!DOCTYPE html>\n<html><head><meta charset=\"utf-8\"><title>Already Processed</title></head>\n<body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\">\n  <div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\">\n    <div style=\"font-size:72px;margin-bottom:16px\">🔒</div>\n    <h1 style=\"color:#6366f1;font-size:24px;margin:0 0 12px\">Already Processed</h1>\n    <p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This OIL claim has already been <strong>${currentStatus}</strong> ${emoji} and cannot be changed.</p>\n    <div style=\"background:#f3f4f6;border-radius:10px;padding:16px 20px;text-align:left\">\n      <p style=\"margin:4px 0;font-size:13px;color:#444\">👤 <strong>Staff:</strong> ${parsed.staffName}</p>\n      <p style=\"margin:4px 0;font-size:13px;color:${color}\">🏷 <strong>Status:</strong> ${currentStatus}</p>\n    </div>\n    <p style=\"margin-top:28px;color:#aaa;font-size:12px\">No further action is needed.</p>\n  </div>\n</body></html>`;\n  return [{ json: { html, locked: true, decision: currentStatus, staffName: parsed.staffName } }];\n}\n\n// Not yet decided — proceed\nreturn [{ json: { ...parsed, locked: false } }];\n"
+                "jsCode": "// Read original request data\nconst parsed = $('Parse Approval Request').first().json;\nconst targetTimestamp = parsed.submittedAt;\n\n// Search ALL rows to find the matching OIL claim\nconst allRows = $input.all();\nconst matchedRow = allRows.find(item => item.json.submittedAt === targetTimestamp);\n\nif (!matchedRow) {\n  return [{ json: { locked: false, ...parsed } }]; // Not found, allow proceed\n}\n\n// OIL uses 'validationStatus' column name\nconst currentStatus = (matchedRow.json.validationStatus || '').trim();\n\nif (currentStatus === 'Approved' || currentStatus === 'Rejected') {\n  const emoji = currentStatus === 'Approved' ? '\u2705' : '\u274c';\n  const color = currentStatus === 'Approved' ? '#10b981' : '#ef4444';\n  const html = `<!DOCTYPE html><html><head><meta charset=\"utf-8\"><title>Already Processed</title></head><body style=\"font-family:Arial,sans-serif;background:#f5f5f5;margin:0;padding:40px;min-height:100vh;display:flex;align-items:center;justify-content:center;box-sizing:border-box\"><div style=\"max-width:460px;width:100%;background:white;border-radius:16px;padding:48px 36px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.1)\"><div style=\"font-size:72px;margin-bottom:16px\">\ud83d\udd12</div><h1 style=\"color:#6366f1;font-size:24px;margin:0 0 12px\">Already Processed</h1><p style=\"color:#555;font-size:15px;line-height:1.6;margin:0 0 24px\">This OIL claim has already been <strong>${currentStatus}</strong> ${emoji} and cannot be changed.</p><div style=\"background:#f3f4f6;border-radius:10px;padding:16px 20px;text-align:left\"><p style=\"margin:4px 0;font-size:13px;color:#444\">\ud83d\udc64 <strong>Staff:</strong> ${parsed.staffName}</p><p style=\"margin:4px 0;font-size:13px;color:${color}\">\ud83c\udff7 <strong>Final Status:</strong> ${currentStatus} ${emoji}</p></div><p style=\"margin-top:28px;color:#aaa;font-size:12px\">No further action is needed.</p></div></body></html>`;\n  return [{ json: { html, locked: true, decision: currentStatus, staffName: parsed.staffName } }];\n}\n\n// Not decided yet — proceed\nreturn [{ json: { ...parsed, locked: false } }];"
             },
             "id": "node_check_lock_oil",
             "name": "Check If Already Decided",
             "type": "n8n-nodes-base.code",
             "typeVersion": 2,
-            "position": [
-                900,
-                300
-            ]
+            "position": [900, 300]
         },
         {
             "parameters": {
