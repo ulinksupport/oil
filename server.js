@@ -117,7 +117,7 @@ app.post('/submit-opd', upload.single('opdFile'), async (req, res) => {
 // ── POST /submit-claims  (Employee Claims / Provider Payment — multipart) ────
 app.post('/submit-claims', upload.single('claimsFile'), async (req, res) => {
     try {
-        const required = ['employeeName', 'type', 'submissionDate', 'paymentDate', 'description', 'entity', 'currency', 'amount', 'paymentMode', 'cardDigits', 'approver'];
+        const required = ['employeeName', 'type', 'submissionDate', 'description', 'entity', 'currency', 'amount', 'paymentMode', 'cardDigits', 'approver'];
         for (const field of required) {
             if (!req.body[field] || !req.body[field].toString().trim())
                 return res.status(400).json({ success: false, error: `Missing required field: ${field}` });
@@ -131,7 +131,10 @@ app.post('/submit-claims', upload.single('claimsFile'), async (req, res) => {
 
         const form = new FormData();
         const fields = ['employeeName','type','submissionDate','paymentDate','description','entity','currency','amount','paymentMode','cardDigits','approver'];
-        fields.forEach(f => form.append(f, req.body[f].trim ? req.body[f].trim() : req.body[f]));
+        fields.forEach(f => {
+            const val = req.body[f];
+            form.append(f, val && val.trim ? val.trim() : (val || ''));
+        });
         form.append('claimsFile', req.file.buffer, { filename: req.file.originalname, contentType: req.file.mimetype });
 
         const n8nRes = await axios.post(webhookUrl, form, { headers: form.getHeaders(), timeout: 30000 });
