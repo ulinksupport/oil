@@ -970,7 +970,12 @@
           <div class="ai-connector" id="sconn3"></div>
           <div class="ai-step-dot">
             <div class="dot" id="sdot4">4</div>
-            <div class="step-label" id="slabel4">Export</div>
+            <div class="step-label" id="slabel4">Human Review</div>
+          </div>
+          <div class="ai-connector" id="sconn4"></div>
+          <div class="ai-step-dot">
+            <div class="dot" id="sdot5">5</div>
+            <div class="step-label" id="slabel5">Export</div>
           </div>
         </div>
 
@@ -1080,17 +1085,49 @@
           </div>
 
           <div class="ai-actions">
-            <button class="ai-btn ai-btn-outline" onclick="resetAiDemo()">← Analyze Another</button>
-            <button class="ai-btn ai-btn-success" onclick="goToScreen(4)">✅ Confirm & Export to Excel →</button>
+            <button class="ai-btn ai-btn-outline" onclick="resetAiDemo()"><- Analyze Another</button>
+            <button class="ai-btn ai-btn-primary" onclick="goToScreen(4)">👤 Send for Human Review →</button>
           </div>
         </div>
 
-        <!-- ── SCREEN 4: Export to Excel ─────────────── -->
+        <!-- ── SCREEN 4: Human Approval ────────────────── -->
         <div class="ai-screen" id="ai-screen-4">
+          <div class="ai-section-label">👤 Human Review Required</div>
+
+          <div style="background:rgba(99,102,241,0.06);border:1px solid rgba(99,102,241,0.2);border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+            <span style="font-size:40px">🤖</span>
+            <div>
+              <div style="color:#a5b4fc;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">AI Recommendation</div>
+              <div style="color:white;font-size:17px;font-weight:700">✅ Likely Reimbursable — 87% Confidence</div>
+              <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:4px">Grab • SGD 18.50 • Transportation • 26 Mar 2026</div>
+            </div>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:24px;margin-bottom:20px">
+            <div style="font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:16px">📝 Reviewer Notes (Optional)</div>
+            <textarea id="humanNotes" placeholder="Add any comments or justification for your decision..." style="width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:14px;color:white;font-size:13px;font-family:inherit;resize:vertical;min-height:90px;outline:none;box-sizing:border-box"></textarea>
+
+            <div style="margin-top:16px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:12px">🛡 Reviewed By</div>
+            <select id="humanReviewer" style="width:100%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:12px 14px;color:white;font-size:13px;font-family:inherit;outline:none">
+              <option value="">Select Reviewer</option>
+              <option>Galvin Moh</option>
+              <option>Tan Chien Wei</option>
+              <option>Sharon</option>
+            </select>
+          </div>
+
+          <div style="display:flex;gap:14px;justify-content:center;margin-top:8px;flex-wrap:wrap">
+            <button class="ai-btn" onclick="humanDecision('reject')" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:white;padding:16px 36px;font-size:15px;box-shadow:0 4px 18px rgba(239,68,68,0.4);flex:1;max-width:220px;justify-content:center">❌ Reject</button>
+            <button class="ai-btn" onclick="humanDecision('approve')" style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:16px 36px;font-size:15px;box-shadow:0 4px 18px rgba(16,185,129,0.4);flex:1;max-width:220px;justify-content:center">✅ Approve</button>
+          </div>
+          <p style="text-align:center;color:rgba(255,255,255,0.3);font-size:11px;margin-top:16px">Your decision is final and will be logged with a timestamp.</p>
+        </div>
+        <div class="ai-screen" id="ai-screen-5">
+          <div id="humanDecisionBanner" style="display:none;border-radius:12px;padding:16px 20px;margin-bottom:20px;font-size:14px;font-weight:600"></div>
           <div class="ai-section-label">📊 Claims Register — Live Preview</div>
 
           <div class="ai-info-banner">
-            🎉 AI verdict has been appended to the Claims Register. Row highlighted below.
+            🎉 Human decision recorded. Claims Register updated automatically.
           </div>
 
           <div class="ai-excel-preview">
@@ -1198,18 +1235,20 @@
     }
 
     function updateStepBar(active) {
-      for (let i = 1; i <= 4; i++) {
+      const total = 5;
+      for (let i = 1; i <= total; i++) {
         const dot   = document.getElementById('sdot'   + i);
         const label = document.getElementById('slabel' + i);
+        if (!dot) continue;
         dot.classList.remove('active','done');
         label.classList.remove('active-label');
         if (i < active)  { dot.classList.add('done'); dot.textContent = '✓'; }
         if (i === active) { dot.classList.add('active'); dot.textContent = i; label.classList.add('active-label'); }
         if (i > active)   { dot.textContent = i; }
       }
-      for (let i = 1; i <= 3; i++) {
+      for (let i = 1; i < total; i++) {
         const conn = document.getElementById('sconn' + i);
-        conn.classList.toggle('done', i < active);
+        if (conn) conn.classList.toggle('done', i < active);
       }
     }
 
@@ -1233,12 +1272,31 @@
         }, doneTimes[i]);
       });
 
-      // Go to results after a bit
+      // Go to results
       setTimeout(() => goToScreen(3), 5200);
       // Animate confidence bar
       setTimeout(() => {
         document.getElementById('aiConfidenceFill').style.width = '87%';
       }, 5600);
+    }
+
+    function humanDecision(choice) {
+      const reviewer = document.getElementById('humanReviewer').value || 'Reviewer';
+      const notes    = document.getElementById('humanNotes').value || '-';
+      const banner   = document.getElementById('humanDecisionBanner');
+      if (choice === 'approve') {
+        banner.style.background = 'rgba(16,185,129,0.12)';
+        banner.style.border = '1px solid rgba(16,185,129,0.3)';
+        banner.style.color  = '#6ee7b7';
+        banner.innerHTML = `✅ <strong>Approved</strong> by ${reviewer} — Logged at ${new Date().toLocaleTimeString()}. Notes: "${notes}"`;
+      } else {
+        banner.style.background = 'rgba(239,68,68,0.12)';
+        banner.style.border = '1px solid rgba(239,68,68,0.3)';
+        banner.style.color  = '#fca5a5';
+        banner.innerHTML = `❌ <strong>Rejected</strong> by ${reviewer} — Logged at ${new Date().toLocaleTimeString()}. Notes: "${notes}"`;
+      }
+      banner.style.display = 'block';
+      goToScreen(5);
     }
 
     function resetAiDemo() {
