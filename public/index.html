@@ -1052,14 +1052,14 @@
               <span class="ai-verdict-emoji">✅</span>
               <div>
                 <div class="ai-verdict-title" id="aiVerdictTitle">Likely Reimbursable</div>
-                <div class="ai-verdict-sub" id="aiVerdictSub">This receipt meets company reimbursement criteria</div>
+                <div class="ai-verdict-sub" id="aiVerdictSub">Medical claim meets company reimbursement criteria</div>
               </div>
             </div>
 
             <div class="confidence-bar-wrap">
               <div class="confidence-label">
                 <span>Approval Confidence</span>
-                <span id="aiConfidencePct">87%</span>
+                <span id="aiConfidencePct">91%</span>
               </div>
               <div class="confidence-bar">
                 <div class="confidence-fill high" id="aiConfidenceFill" style="width:0%"></div>
@@ -1077,10 +1077,11 @@
 
             <div class="ai-section-label">💡 AI Reasoning</div>
             <ul class="ai-reasons" id="aiReasons">
-              <li><span class="reason-icon">✅</span> Vendor "Grab" is on the approved transportation vendor list</li>
-              <li><span class="reason-icon">✅</span> Amount SGD 18.50 is within the single-trip cap of SGD 50</li>
-              <li><span class="reason-icon">✅</span> Receipt date matches a registered working day</li>
-              <li><span class="reason-icon">⚠️</span> No job code indicated — approver may request clarification</li>
+              <li><span class="reason-icon">✅</span> Diagnosis (Upper Respiratory Tract Infection) is a covered medical condition</li>
+              <li><span class="reason-icon">✅</span> Clinic 888 Medical Centre is a registered GP clinic under company panel</li>
+              <li><span class="reason-icon">✅</span> Amount SGD 80.00 is within the per-visit medical claim cap of SGD 100</li>
+              <li><span class="reason-icon">✅</span> All medications (Panadol, Cough Syrup, Flu Syrup) are on the approved formulary list</li>
+              <li><span class="reason-icon">⚠️</span> No MC (medical certificate) attached — approver may request a copy</li>
             </ul>
           </div>
 
@@ -1098,8 +1099,8 @@
             <span style="font-size:40px">🤖</span>
             <div>
               <div style="color:#a5b4fc;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">AI Recommendation</div>
-              <div style="color:white;font-size:17px;font-weight:700">✅ Likely Reimbursable — 87% Confidence</div>
-              <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:4px">Grab • SGD 18.50 • Transportation • 26 Mar 2026</div>
+              <div style="color:white;font-size:17px;font-weight:700">✅ Likely Reimbursable — 91% Confidence</div>
+              <div style="color:rgba(255,255,255,0.5);font-size:12px;margin-top:4px">Clinic 888 Medical Centre • SGD 80.00 • Medical • 02 Apr 2026</div>
             </div>
           </div>
 
@@ -1157,7 +1158,7 @@
                   <tr><td>002</td><td>10 Mar 2026</td><td>Yufong Zhou</td><td>Restaurant ABC</td><td>Meals</td><td>SGD 120.00</td><td class="xl-status-partial">⚠ Partial</td><td class="xl-confidence-mid">64%</td><td>Exceeds cap</td><td>Pending</td></tr>
                   <tr><td>003</td><td>17 Mar 2026</td><td>Sharon</td><td>Pharmacy</td><td>Medical</td><td>SGD 45.80</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">95%</td><td>—</td><td>Approved</td></tr>
                   <tr><td>004</td><td>19 Mar 2026</td><td>Amine Souissi</td><td>Nike Store</td><td>Personal</td><td>SGD 320.00</td><td class="xl-status-rejected">❌ Rejected</td><td class="xl-confidence-mid">—</td><td>Non-eligible</td><td>Rejected</td></tr>
-                  <tr class="highlight"><td>005</td><td>26 Mar 2026</td><td>Yufong Zhou</td><td>Grab</td><td>Transport</td><td>SGD 18.50</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">87%</td><td>No job code</td><td>Pending ✍️</td></tr>
+                  <tr><td>005</td><td>02 Apr 2026</td><td>Yufong Zhou</td><td>Clinic 888</td><td>Medical</td><td>SGD 80.00</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">91%</td><td>No MC attached</td><td>Pending ✍️</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1186,16 +1187,15 @@
 
     function downloadExcel() {
       const rows = [
-        ['#', 'Date', 'Employee', 'Vendor', 'Category', 'Amount', 'AI Status', 'Confidence', 'Reason Flag', 'HR Decision'],
-        ['001', '03 Mar 2026', 'Galvin Moh',    'Grab',           'Transport', 'SGD 14.20',  'Approved', '92%', '-',            'Approved'],
-        ['002', '10 Mar 2026', 'Yufong Zhou',   'Restaurant ABC', 'Meals',     'SGD 120.00', 'Partial',  '64%', 'Exceeds cap',  'Pending'],
-        ['003', '17 Mar 2026', 'Sharon',         'Pharmacy',       'Medical',   'SGD 45.80',  'Approved', '95%', '-',            'Approved'],
-        ['004', '19 Mar 2026', 'Amine Souissi', 'Nike Store',     'Personal',  'SGD 320.00', 'Rejected', '-',   'Non-eligible', 'Rejected'],
-        ['005', '26 Mar 2026', 'Yufong Zhou',   'Grab',           'Transport', 'SGD 18.50',  'Approved', '87%', 'No job code',  'Pending']
+        ['#', 'Date', 'Employee', 'Clinic / Vendor', 'Category', 'Amount', 'AI Status', 'Confidence', 'Reason Flag', 'HR Decision'],
+        ['001', '03 Mar 2026', 'Galvin Moh',    'Grab',                    'Transport', 'SGD 14.20',  'Approved', '92%', '-',             'Approved'],
+        ['002', '10 Mar 2026', 'Yufong Zhou',   'Restaurant ABC',          'Meals',     'SGD 120.00', 'Partial',  '64%', 'Exceeds cap',   'Pending'],
+        ['003', '17 Mar 2026', 'Sharon',         'Pharmacy',                'Medical',   'SGD 45.80',  'Approved', '95%', '-',             'Approved'],
+        ['004', '19 Mar 2026', 'Amine Souissi', 'Nike Store',              'Personal',  'SGD 320.00', 'Rejected', '-',   'Non-eligible',  'Rejected'],
+        ['005', '02 Apr 2026', 'Yufong Zhou',   'Clinic 888 Medical Ctr', 'Medical',   'SGD 80.00',  'Approved', '91%', 'No MC attached', 'Pending']
       ];
       const ws = XLSX.utils.aoa_to_sheet(rows);
-      // Column widths
-      ws['!cols'] = [4,14,16,18,12,12,12,12,14,14].map(w => ({ wch: w }));
+      ws['!cols'] = [4,14,16,22,12,12,12,12,16,14].map(w => ({ wch: w }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Claims Register');
       XLSX.writeFile(wb, 'Claims_Register_2026.xlsx');
@@ -1276,7 +1276,7 @@
       setTimeout(() => goToScreen(3), 5200);
       // Animate confidence bar
       setTimeout(() => {
-        document.getElementById('aiConfidenceFill').style.width = '87%';
+        document.getElementById('aiConfidenceFill').style.width = '91%';
       }, 5600);
     }
 
