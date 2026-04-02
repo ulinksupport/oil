@@ -7,6 +7,8 @@
   <title>Claims Portal | OIL, OPD & Employee Claims</title>
   <meta name="description" content="Submit OIL (Off-in-Lieu) or OPD (Medical) claims." />
   <link rel="stylesheet" href="style.css" />
+  <!-- SheetJS for real Excel export -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
   <style>
     /* ── Tab Navigation ─────────────────────────────── */
     .tab-nav {
@@ -1126,7 +1128,7 @@
 
           <div class="ai-actions">
             <button class="ai-btn ai-btn-ghost" onclick="resetAiDemo()">🔄 Analyze Another Receipt</button>
-            <button class="ai-btn ai-btn-success" onclick="alert('✅ Exported! File saved to SharePoint/Claims_Register_2026.xlsx')">📥 Download Excel</button>
+            <button class="ai-btn ai-btn-success" onclick="downloadExcel()">📥 Download Excel</button>
           </div>
         </div>
 
@@ -1144,6 +1146,23 @@
 
     // ── AI Demo Logic ────────────────────────────────────────────────────────
     let aiCurrentScreen = 1;
+
+    function downloadExcel() {
+      const rows = [
+        ['#', 'Date', 'Employee', 'Vendor', 'Category', 'Amount', 'AI Status', 'Confidence', 'Reason Flag', 'HR Decision'],
+        ['001', '03 Mar 2026', 'Galvin Moh',    'Grab',           'Transport', 'SGD 14.20',  'Approved', '92%', '-',            'Approved'],
+        ['002', '10 Mar 2026', 'Yufong Zhou',   'Restaurant ABC', 'Meals',     'SGD 120.00', 'Partial',  '64%', 'Exceeds cap',  'Pending'],
+        ['003', '17 Mar 2026', 'Sharon',         'Pharmacy',       'Medical',   'SGD 45.80',  'Approved', '95%', '-',            'Approved'],
+        ['004', '19 Mar 2026', 'Amine Souissi', 'Nike Store',     'Personal',  'SGD 320.00', 'Rejected', '-',   'Non-eligible', 'Rejected'],
+        ['005', '26 Mar 2026', 'Yufong Zhou',   'Grab',           'Transport', 'SGD 18.50',  'Approved', '87%', 'No job code',  'Pending']
+      ];
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      // Column widths
+      ws['!cols'] = [4,14,16,18,12,12,12,12,14,14].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Claims Register');
+      XLSX.writeFile(wb, 'Claims_Register_2026.xlsx');
+    }
 
     function handleAiFileSelect(e) {
       const f = e.target.files[0];
