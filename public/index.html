@@ -69,6 +69,7 @@
       <button class="tab-btn active" id="tab-oil" onclick="switchTab('oil')">⏱ OIL Claim</button>
       <button class="tab-btn" id="tab-opd" onclick="switchTab('opd')">🏥 OPD Medical Claim</button>
       <button class="tab-btn" id="tab-claims" onclick="switchTab('claims')">💼 Claims / Provider</button>
+      <button class="tab-btn" id="tab-ai" onclick="switchTab('ai')">🤖 AI Receipt Analyzer</button>
     </div>
 
     <!-- ═══════════════════════════════════════════════
@@ -657,8 +658,583 @@
           document.getElementById('claimsSubmitBtn').disabled = false;
         }
       });
-    </script>
+
+    <!-- ═══════════════════════════════════════════════
+         TAB 4 — AI Receipt Analyzer (Demo)
+    ════════════════════════════════════════════════ -->
+    <div class="tab-panel" id="panel-ai">
+      <style>
+        /* ── AI Analyzer styles ─────────────────────── */
+        .ai-wizard { max-width: 720px; margin: 0 auto; }
+
+        .ai-steps-bar {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0;
+          margin-bottom: 32px;
+        }
+        .ai-step-dot {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 6px;
+          position: relative;
+          z-index: 1;
+        }
+        .ai-step-dot .dot {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          display: flex; align-items: center; justify-content: center;
+          font-size: 14px; font-weight: 700;
+          background: rgba(255,255,255,0.08);
+          border: 2px solid rgba(255,255,255,0.15);
+          color: rgba(255,255,255,0.4);
+          transition: all 0.4s ease;
+        }
+        .ai-step-dot .dot.done { background: #10b981; border-color: #10b981; color: white; }
+        .ai-step-dot .dot.active { background: linear-gradient(135deg,#6366f1,#8b5cf6); border-color: #8b5cf6; color: white; box-shadow: 0 0 16px rgba(139,92,246,0.5); }
+        .ai-step-dot .step-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; }
+        .ai-step-dot .step-label.active-label { color: #a5b4fc; }
+        .ai-connector {
+          flex: 1; height: 2px;
+          background: rgba(255,255,255,0.1);
+          margin: 0 4px;
+          margin-bottom: 22px;
+          transition: background 0.4s;
+        }
+        .ai-connector.done { background: #10b981; }
+
+        /* Screen cards */
+        .ai-screen { display: none; }
+        .ai-screen.active { display: block; animation: fadeUpIn 0.4s ease; }
+        @keyframes fadeUpIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+        /* Screen 1 — Upload */
+        .ai-drop-zone {
+          border: 2px dashed rgba(99,102,241,0.5);
+          border-radius: 16px;
+          padding: 60px 40px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.3s;
+          background: rgba(99,102,241,0.04);
+          position: relative;
+        }
+        .ai-drop-zone:hover, .ai-drop-zone.drag-over {
+          border-color: #8b5cf6;
+          background: rgba(139,92,246,0.1);
+        }
+        .ai-drop-zone .drop-icon { font-size: 64px; margin-bottom: 16px; display: block; }
+        .ai-drop-zone h3 { color: white; font-size: 18px; margin-bottom: 8px; }
+        .ai-drop-zone p { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 20px; }
+        .ai-drop-zone input[type=file] { display: none; }
+        .ai-kb-badges { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 20px; }
+        .ai-kb-badge {
+          background: rgba(99,102,241,0.15);
+          border: 1px solid rgba(99,102,241,0.3);
+          color: #a5b4fc;
+          border-radius: 20px;
+          padding: 4px 12px;
+          font-size: 11px;
+          font-weight: 600;
+        }
+        .ai-file-preview {
+          display: none;
+          background: rgba(16,185,129,0.08);
+          border: 1px solid rgba(16,185,129,0.25);
+          border-radius: 12px;
+          padding: 16px 20px;
+          margin-top: 16px;
+          display: none;
+          align-items: center;
+          gap: 14px;
+        }
+        .ai-file-preview.show { display: flex; }
+        .ai-file-preview .file-icon { font-size: 32px; }
+        .ai-file-preview .file-info { flex: 1; text-align: left; }
+        .ai-file-preview .file-info strong { display: block; color: white; font-size: 14px; }
+        .ai-file-preview .file-info span { color: rgba(255,255,255,0.5); font-size: 12px; }
+
+        /* Screen 2 — Analyzing */
+        .ai-analyzing-box {
+          background: rgba(255,255,255,0.03);
+          border: 1px solid rgba(255,255,255,0.08);
+          border-radius: 16px;
+          padding: 48px 32px;
+          text-align: center;
+        }
+        .ai-spinner-ring {
+          width: 80px; height: 80px;
+          border-radius: 50%;
+          border: 4px solid rgba(99,102,241,0.15);
+          border-top-color: #8b5cf6;
+          animation: spin 1s linear infinite;
+          margin: 0 auto 24px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .ai-analysis-steps { text-align: left; margin-top: 32px; }
+        .ai-analysis-step {
+          display: flex; align-items: center; gap: 12px;
+          padding: 12px 16px;
+          border-radius: 10px;
+          margin-bottom: 8px;
+          font-size: 13px;
+          color: rgba(255,255,255,0.5);
+          transition: all 0.4s;
+        }
+        .ai-analysis-step.done {
+          background: rgba(16,185,129,0.08);
+          color: #6ee7b7;
+        }
+        .ai-analysis-step.running {
+          background: rgba(99,102,241,0.1);
+          color: #a5b4fc;
+        }
+        .ai-analysis-step .step-icon { font-size: 18px; width: 24px; text-align: center; }
+        .ai-step-spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid rgba(99,102,241,0.3); border-top-color: #8b5cf6; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+
+        /* Screen 3 — Result */
+        .ai-verdict-card {
+          border-radius: 16px;
+          padding: 28px;
+          margin-bottom: 20px;
+          position: relative;
+          overflow: hidden;
+        }
+        .ai-verdict-card.approved {
+          background: linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.06));
+          border: 1px solid rgba(16,185,129,0.3);
+        }
+        .ai-verdict-card.partial {
+          background: linear-gradient(135deg, rgba(245,158,11,0.12), rgba(217,119,6,0.06));
+          border: 1px solid rgba(245,158,11,0.3);
+        }
+        .ai-verdict-card.rejected {
+          background: linear-gradient(135deg, rgba(239,68,68,0.12), rgba(185,28,28,0.06));
+          border: 1px solid rgba(239,68,68,0.3);
+        }
+        .ai-verdict-header { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .ai-verdict-emoji { font-size: 48px; }
+        .ai-verdict-title { font-size: 22px; font-weight: 700; color: white; }
+        .ai-verdict-sub { font-size: 13px; color: rgba(255,255,255,0.55); margin-top: 4px; }
+        .confidence-bar-wrap { margin-bottom: 20px; }
+        .confidence-label { display: flex; justify-content: space-between; font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 8px; }
+        .confidence-bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; }
+        .confidence-fill { height: 100%; border-radius: 8px; transition: width 1.2s ease; }
+        .confidence-fill.high { background: linear-gradient(90deg, #10b981, #34d399); }
+        .confidence-fill.mid  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+        .confidence-fill.low  { background: linear-gradient(90deg, #ef4444, #f87171); }
+        .ai-reasons { list-style: none; padding: 0; margin: 0; }
+        .ai-reasons li { display: flex; gap: 10px; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 6px; color: rgba(255,255,255,0.7); background: rgba(255,255,255,0.04); }
+        .ai-reasons li .reason-icon { flex-shrink: 0; font-size: 15px; }
+        .ai-extracted-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .ai-extracted-table td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .ai-extracted-table td:first-child { color: rgba(255,255,255,0.45); width: 45%; }
+        .ai-extracted-table td:last-child { color: white; font-weight: 600; }
+
+        /* Screen 4 — Excel */
+        .ai-excel-preview {
+          background: #1e2228;
+          border-radius: 12px;
+          overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.08);
+          margin-bottom: 20px;
+        }
+        .excel-toolbar {
+          background: #217346;
+          padding: 10px 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+        .excel-toolbar .xl-icon { font-size: 20px; }
+        .excel-toolbar span { color: white; font-size: 13px; font-weight: 600; }
+        .excel-toolbar .xl-badge {
+          margin-left: auto;
+          background: rgba(255,255,255,0.2);
+          color: white;
+          font-size: 11px;
+          padding: 2px 10px;
+          border-radius: 20px;
+        }
+        .excel-grid { overflow-x: auto; }
+        .excel-grid table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .excel-grid th {
+          background: #2d3748;
+          color: rgba(255,255,255,0.5);
+          font-weight: 600;
+          padding: 8px 12px;
+          text-align: left;
+          white-space: nowrap;
+          border-right: 1px solid rgba(255,255,255,0.06);
+        }
+        .excel-grid td {
+          padding: 9px 12px;
+          color: rgba(255,255,255,0.8);
+          border-bottom: 1px solid rgba(255,255,255,0.05);
+          border-right: 1px solid rgba(255,255,255,0.04);
+          white-space: nowrap;
+        }
+        .excel-grid tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+        .excel-grid tr.highlight td { background: rgba(99,102,241,0.15); color: white; }
+        .xl-status-approved { color: #34d399; font-weight: 700; }
+        .xl-status-partial  { color: #fbbf24; font-weight: 700; }
+        .xl-status-rejected { color: #f87171; font-weight: 700; }
+        .xl-confidence-high { color: #34d399; }
+        .xl-confidence-mid  { color: #fbbf24; }
+
+        .ai-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 14px 28px;
+          border: none;
+          border-radius: 10px;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
+          transition: all 0.2s;
+          font-family: inherit;
+        }
+        .ai-btn-primary {
+          background: linear-gradient(135deg, #6366f1, #8b5cf6);
+          color: white;
+          box-shadow: 0 4px 14px rgba(99,102,241,0.4);
+        }
+        .ai-btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.5); }
+        .ai-btn-success {
+          background: linear-gradient(135deg, #10b981, #059669);
+          color: white;
+          box-shadow: 0 4px 14px rgba(16,185,129,0.4);
+        }
+        .ai-btn-success:hover { transform: translateY(-1px); }
+        .ai-btn-outline {
+          background: transparent;
+          color: rgba(255,255,255,0.6);
+          border: 1px solid rgba(255,255,255,0.15);
+        }
+        .ai-btn-outline:hover { background: rgba(255,255,255,0.06); color: white; }
+        .ai-btn-ghost {
+          background: rgba(255,255,255,0.05);
+          color: rgba(255,255,255,0.6);
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .ai-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 8px; flex-wrap: wrap; }
+        .ai-section-label {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: rgba(255,255,255,0.35);
+          margin-bottom: 12px;
+          margin-top: 24px;
+        }
+        .ai-info-banner {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(99,102,241,0.08);
+          border: 1px solid rgba(99,102,241,0.2);
+          border-radius: 10px;
+          padding: 12px 16px;
+          font-size: 13px;
+          color: #a5b4fc;
+          margin-bottom: 20px;
+        }
+      </style>
+
+      <div class="card ai-wizard">
+        <!-- Step progress bar -->
+        <div class="ai-steps-bar" id="aiStepsBar">
+          <div class="ai-step-dot">
+            <div class="dot active" id="sdot1">1</div>
+            <div class="step-label active-label" id="slabel1">Upload</div>
+          </div>
+          <div class="ai-connector" id="sconn1"></div>
+          <div class="ai-step-dot">
+            <div class="dot" id="sdot2">2</div>
+            <div class="step-label" id="slabel2">Analyzing</div>
+          </div>
+          <div class="ai-connector" id="sconn2"></div>
+          <div class="ai-step-dot">
+            <div class="dot" id="sdot3">3</div>
+            <div class="step-label" id="slabel3">AI Verdict</div>
+          </div>
+          <div class="ai-connector" id="sconn3"></div>
+          <div class="ai-step-dot">
+            <div class="dot" id="sdot4">4</div>
+            <div class="step-label" id="slabel4">Export</div>
+          </div>
+        </div>
+
+        <!-- ── SCREEN 1: Upload ─────────────────────── -->
+        <div class="ai-screen active" id="ai-screen-1">
+          <div class="ai-section-label">📂 Knowledge Base Active</div>
+          <div class="ai-info-banner">
+            🧠 AI is loaded with your company's reimbursement policy — eligible categories, spending caps, and vendor whitelist.
+          </div>
+
+          <div class="ai-drop-zone" id="aiDropZone" onclick="document.getElementById('aiFileInput').click()">
+            <input type="file" id="aiFileInput" accept="image/*,application/pdf" onchange="handleAiFileSelect(event)">
+            <span class="drop-icon">📄</span>
+            <h3>Drag & drop your receipt here</h3>
+            <p>Supports JPG, PNG, PDF up to 10 MB</p>
+            <button class="ai-btn ai-btn-outline" onclick="event.stopPropagation(); document.getElementById('aiFileInput').click()">Browse File</button>
+            <div class="ai-kb-badges">
+              <span class="ai-kb-badge">✅ Grab / Taxi</span>
+              <span class="ai-kb-badge">✅ Medical</span>
+              <span class="ai-kb-badge">✅ Accommodation</span>
+              <span class="ai-kb-badge">✅ Business Meals</span>
+              <span class="ai-kb-badge">❌ Personal Shopping</span>
+              <span class="ai-kb-badge">❌ Alcohol</span>
+            </div>
+          </div>
+
+          <div class="ai-file-preview" id="aiFilePreview">
+            <span class="file-icon">🧾</span>
+            <div class="file-info">
+              <strong id="aiFileName">receipt.jpg</strong>
+              <span id="aiFileSize">0.07 MB</span>
+            </div>
+          </div>
+
+          <div class="ai-actions" style="margin-top:24px">
+            <button class="ai-btn ai-btn-primary" id="aiAnalyzeBtn" onclick="startAnalysis()" disabled>🔍 Analyze with AI →</button>
+          </div>
+        </div>
+
+        <!-- ── SCREEN 2: Analyzing ─────────────────── -->
+        <div class="ai-screen" id="ai-screen-2">
+          <div class="ai-analyzing-box">
+            <div class="ai-spinner-ring"></div>
+            <h3 style="color:white;font-size:18px;margin-bottom:8px">AI is reading your receipt…</h3>
+            <p style="color:rgba(255,255,255,0.45);font-size:13px">Extracting data and cross-checking against company policy</p>
+
+            <div class="ai-analysis-steps">
+              <div class="ai-analysis-step" id="astep1">
+                <span class="step-icon">🔍</span> Detecting receipt layout & language…
+              </div>
+              <div class="ai-analysis-step" id="astep2">
+                <span class="step-icon">📦</span> Extracting vendor, date, amount & category…
+              </div>
+              <div class="ai-analysis-step" id="astep3">
+                <span class="step-icon">📚</span> Cross-referencing company reimbursement policy…
+              </div>
+              <div class="ai-analysis-step" id="astep4">
+                <span class="step-icon">⚖️</span> Computing approval likelihood score…
+              </div>
+              <div class="ai-analysis-step" id="astep5">
+                <span class="step-icon">✍️</span> Generating recommendation report…
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── SCREEN 3: AI Verdict ─────────────────── -->
+        <div class="ai-screen" id="ai-screen-3">
+
+          <div class="ai-section-label">🤖 AI Analysis Complete</div>
+
+          <div class="ai-verdict-card approved" id="aiVerdictCard">
+            <div class="ai-verdict-header">
+              <span class="ai-verdict-emoji">✅</span>
+              <div>
+                <div class="ai-verdict-title" id="aiVerdictTitle">Likely Reimbursable</div>
+                <div class="ai-verdict-sub" id="aiVerdictSub">This receipt meets company reimbursement criteria</div>
+              </div>
+            </div>
+
+            <div class="confidence-bar-wrap">
+              <div class="confidence-label">
+                <span>Approval Confidence</span>
+                <span id="aiConfidencePct">87%</span>
+              </div>
+              <div class="confidence-bar">
+                <div class="confidence-fill high" id="aiConfidenceFill" style="width:0%"></div>
+              </div>
+            </div>
+
+            <div class="ai-section-label" style="margin-top:4px">📋 Extracted Receipt Details</div>
+            <table class="ai-extracted-table">
+              <tr><td>🏪 Vendor</td><td id="xl-vendor">Grab (Singapore)</td></tr>
+              <tr><td>📅 Date</td><td id="xl-date">26 Mar 2026</td></tr>
+              <tr><td>💰 Amount</td><td id="xl-amount">SGD 18.50</td></tr>
+              <tr><td>🏷 Category</td><td id="xl-cat">Transportation</td></tr>
+              <tr><td>👤 Payee</td><td id="xl-payee">Yufong Zhou</td></tr>
+            </table>
+
+            <div class="ai-section-label">💡 AI Reasoning</div>
+            <ul class="ai-reasons" id="aiReasons">
+              <li><span class="reason-icon">✅</span> Vendor "Grab" is on the approved transportation vendor list</li>
+              <li><span class="reason-icon">✅</span> Amount SGD 18.50 is within the single-trip cap of SGD 50</li>
+              <li><span class="reason-icon">✅</span> Receipt date matches a registered working day</li>
+              <li><span class="reason-icon">⚠️</span> No job code indicated — approver may request clarification</li>
+            </ul>
+          </div>
+
+          <div class="ai-actions">
+            <button class="ai-btn ai-btn-outline" onclick="resetAiDemo()">← Analyze Another</button>
+            <button class="ai-btn ai-btn-success" onclick="goToScreen(4)">✅ Confirm & Export to Excel →</button>
+          </div>
+        </div>
+
+        <!-- ── SCREEN 4: Export to Excel ─────────────── -->
+        <div class="ai-screen" id="ai-screen-4">
+          <div class="ai-section-label">📊 Claims Register — Live Preview</div>
+
+          <div class="ai-info-banner">
+            🎉 AI verdict has been appended to the Claims Register. Row highlighted below.
+          </div>
+
+          <div class="ai-excel-preview">
+            <div class="excel-toolbar">
+              <span class="xl-icon">📗</span>
+              <span>Claims_Register_2026.xlsx</span>
+              <span class="xl-badge">Auto-saved</span>
+            </div>
+            <div class="excel-grid">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Date</th>
+                    <th>Employee</th>
+                    <th>Vendor</th>
+                    <th>Category</th>
+                    <th>Amount</th>
+                    <th>AI Status</th>
+                    <th>Confidence</th>
+                    <th>Reason Flag</th>
+                    <th>HR Decision</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr><td>001</td><td>03 Mar 2026</td><td>Galvin Moh</td><td>Grab</td><td>Transport</td><td>SGD 14.20</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">92%</td><td>—</td><td>Approved</td></tr>
+                  <tr><td>002</td><td>10 Mar 2026</td><td>Yufong Zhou</td><td>Restaurant ABC</td><td>Meals</td><td>SGD 120.00</td><td class="xl-status-partial">⚠ Partial</td><td class="xl-confidence-mid">64%</td><td>Exceeds cap</td><td>Pending</td></tr>
+                  <tr><td>003</td><td>17 Mar 2026</td><td>Sharon</td><td>Pharmacy</td><td>Medical</td><td>SGD 45.80</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">95%</td><td>—</td><td>Approved</td></tr>
+                  <tr><td>004</td><td>19 Mar 2026</td><td>Amine Souissi</td><td>Nike Store</td><td>Personal</td><td>SGD 320.00</td><td class="xl-status-rejected">❌ Rejected</td><td class="xl-confidence-mid">—</td><td>Non-eligible</td><td>Rejected</td></tr>
+                  <tr class="highlight"><td>005</td><td>26 Mar 2026</td><td>Yufong Zhou</td><td>Grab</td><td>Transport</td><td>SGD 18.50</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">87%</td><td>No job code</td><td>Pending ✍️</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="ai-actions">
+            <button class="ai-btn ai-btn-ghost" onclick="resetAiDemo()">🔄 Analyze Another Receipt</button>
+            <button class="ai-btn ai-btn-success" onclick="alert('✅ Exported! File saved to SharePoint/Claims_Register_2026.xlsx')">📥 Download Excel</button>
+          </div>
+        </div>
+
+      </div><!-- end card -->
+    </div><!-- end panel-ai -->
+
+  </div><!-- end container -->
+
+  <script>
+    // ── Tab switcher ─────────────────────────────────────────────────────────
+    function switchTab(name) {
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('panel-' + name).classList.add('active');
+      document.getElementById('tab-' + name).classList.add('active');
+    }
+
+    // ── AI Demo Logic ────────────────────────────────────────────────────────
+    let aiCurrentScreen = 1;
+
+    function handleAiFileSelect(e) {
+      const f = e.target.files[0];
+      if (!f) return;
+      document.getElementById('aiFileName').textContent = f.name;
+      document.getElementById('aiFileSize').textContent = (f.size / 1024 / 1024).toFixed(2) + ' MB';
+      document.getElementById('aiFilePreview').classList.add('show');
+      document.getElementById('aiAnalyzeBtn').disabled = false;
+    }
+
+    // Drag events
+    const dz = document.getElementById('aiDropZone');
+    if (dz) {
+      dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+      dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+      dz.addEventListener('drop', e => {
+        e.preventDefault(); dz.classList.remove('drag-over');
+        const f = e.dataTransfer.files[0];
+        if (f) {
+          document.getElementById('aiFileName').textContent = f.name;
+          document.getElementById('aiFileSize').textContent = (f.size/1024/1024).toFixed(2) + ' MB';
+          document.getElementById('aiFilePreview').classList.add('show');
+          document.getElementById('aiAnalyzeBtn').disabled = false;
+        }
+      });
+    }
+
+    function goToScreen(n) {
+      document.querySelectorAll('.ai-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('ai-screen-' + n).classList.add('active');
+      aiCurrentScreen = n;
+      updateStepBar(n);
+    }
+
+    function updateStepBar(active) {
+      for (let i = 1; i <= 4; i++) {
+        const dot   = document.getElementById('sdot'   + i);
+        const label = document.getElementById('slabel' + i);
+        dot.classList.remove('active','done');
+        label.classList.remove('active-label');
+        if (i < active)  { dot.classList.add('done'); dot.textContent = '✓'; }
+        if (i === active) { dot.classList.add('active'); dot.textContent = i; label.classList.add('active-label'); }
+        if (i > active)   { dot.textContent = i; }
+      }
+      for (let i = 1; i <= 3; i++) {
+        const conn = document.getElementById('sconn' + i);
+        conn.classList.toggle('done', i < active);
+      }
+    }
+
+    function startAnalysis() {
+      goToScreen(2);
+      // Animate each step
+      const steps = [1,2,3,4,5];
+      const delays = [600, 1300, 2200, 3100, 3900];
+      const doneTimes = [1200, 2100, 3050, 3850, 4600];
+
+      steps.forEach((s, i) => {
+        setTimeout(() => {
+          const el = document.getElementById('astep' + s);
+          el.classList.add('running');
+        }, delays[i]);
+        setTimeout(() => {
+          const el = document.getElementById('astep' + s);
+          el.classList.remove('running');
+          el.classList.add('done');
+          el.querySelector('.step-icon').textContent = '✅';
+        }, doneTimes[i]);
+      });
+
+      // Go to results after a bit
+      setTimeout(() => goToScreen(3), 5200);
+      // Animate confidence bar
+      setTimeout(() => {
+        document.getElementById('aiConfidenceFill').style.width = '87%';
+      }, 5600);
+    }
+
+    function resetAiDemo() {
+      document.getElementById('aiFileInput').value = '';
+      document.getElementById('aiFilePreview').classList.remove('show');
+      document.getElementById('aiAnalyzeBtn').disabled = true;
+      // Reset analysis steps
+      for (let i = 1; i <= 5; i++) {
+        const el = document.getElementById('astep' + i);
+        el.classList.remove('running','done');
+        const icons = ['🔍','📦','📚','⚖️','✍️'];
+        el.querySelector('.step-icon').textContent = icons[i-1];
+      }
+      document.getElementById('aiConfidenceFill').style.width = '0%';
+      goToScreen(1);
+    }
+  </script>
 
 </body>
-
 </html>
