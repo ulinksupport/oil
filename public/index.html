@@ -993,12 +993,13 @@
             <p>Supports JPG, PNG, PDF up to 10 MB</p>
             <button class="ai-btn ai-btn-outline" onclick="event.stopPropagation(); document.getElementById('aiFileInput').click()">Browse File</button>
             <div class="ai-kb-badges">
-              <span class="ai-kb-badge">✅ Grab / Taxi</span>
-              <span class="ai-kb-badge">✅ Medical</span>
-              <span class="ai-kb-badge">✅ Accommodation</span>
-              <span class="ai-kb-badge">✅ Business Meals</span>
-              <span class="ai-kb-badge">❌ Personal Shopping</span>
-              <span class="ai-kb-badge">❌ Alcohol</span>
+              <span class="ai-kb-badge">✅ GP Consultation</span>
+              <span class="ai-kb-badge">✅ Dental Treatment</span>
+              <span class="ai-kb-badge">✅ Prescribed Medication</span>
+              <span class="ai-kb-badge">✅ Specialist Visit</span>
+              <span class="ai-kb-badge">✅ Hospitalisation</span>
+              <span class="ai-kb-badge">❌ Cosmetic Procedures</span>
+              <span class="ai-kb-badge">❌ Non-Prescription Supplements</span>
             </div>
           </div>
 
@@ -1080,10 +1081,10 @@
             <div class="ai-section-label">💡 AI Reasoning</div>
             <ul class="ai-reasons" id="aiReasons">
               <li><span class="reason-icon">✅</span> Diagnosis (Upper Respiratory Tract Infection) is a covered medical condition</li>
-              <li><span class="reason-icon">✅</span> Clinic 888 Medical Centre is a registered GP clinic under company panel</li>
+              <li><span class="reason-icon">✅</span> Medicare Family Clinic is a registered GP clinic under company panel</li>
               <li><span class="reason-icon">✅</span> Amount SGD 80.00 is within the per-visit medical claim cap of SGD 100</li>
               <li><span class="reason-icon">✅</span> All medications (Panadol, Cough Syrup, Flu Syrup) are on the approved formulary list</li>
-              <li><span class="reason-icon">⚠️</span> No MC (medical certificate) attached — approver may request a copy</li>
+              <li><span class="reason-icon">⚠️</span> MC (Medical Certificate) is attached for 1 day leave on 02 Apr 2026</li>
             </ul>
           </div>
 
@@ -1146,7 +1147,7 @@
                     <th>#</th>
                     <th>Date</th>
                     <th>Employee</th>
-                    <th>Vendor</th>
+                    <th>Clinic / Provider</th>
                     <th>Category</th>
                     <th>Amount</th>
                     <th>AI Status</th>
@@ -1156,11 +1157,11 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr><td>001</td><td>03 Mar 2026</td><td>Galvin Moh</td><td>Grab</td><td>Transport</td><td>SGD 14.20</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">92%</td><td>—</td><td>Approved</td></tr>
-                  <tr><td>002</td><td>10 Mar 2026</td><td>Yufong Zhou</td><td>Restaurant ABC</td><td>Meals</td><td>SGD 120.00</td><td class="xl-status-partial">⚠ Partial</td><td class="xl-confidence-mid">64%</td><td>Exceeds cap</td><td>Pending</td></tr>
-                  <tr><td>003</td><td>17 Mar 2026</td><td>Sharon</td><td>Pharmacy</td><td>Medical</td><td>SGD 45.80</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">95%</td><td>—</td><td>Approved</td></tr>
-                  <tr><td>004</td><td>19 Mar 2026</td><td>Amine Souissi</td><td>Nike Store</td><td>Personal</td><td>SGD 320.00</td><td class="xl-status-rejected">❌ Rejected</td><td class="xl-confidence-mid">—</td><td>Non-eligible</td><td>Rejected</td></tr>
-                  <tr><td>005</td><td>02 Apr 2026</td><td>Yufong Zhou</td><td>Clinic 888</td><td>Medical</td><td>SGD 80.00</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">91%</td><td>No MC attached</td><td>Pending ✍️</td></tr>
+                  <tr><td>001</td><td>05 Mar 2026</td><td>Galvin Moh</td><td>Raffles Medical</td><td>Medical (GP)</td><td>SGD 45.00</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">95%</td><td>—</td><td>Approved</td></tr>
+                  <tr><td>002</td><td>12 Mar 2026</td><td>Yufong Zhou</td><td>Q&M Dental Centre</td><td>Dental</td><td>SGD 180.00</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">89%</td><td>Within annual dental cap</td><td>Approved</td></tr>
+                  <tr><td>003</td><td>20 Mar 2026</td><td>Sharon</td><td>Guardian Pharmacy</td><td>Prescribed Medication</td><td>SGD 38.50</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">97%</td><td>—</td><td>Approved</td></tr>
+                  <tr><td>004</td><td>28 Mar 2026</td><td>Amine Souissi</td><td>Gleneagles Hospital</td><td>Specialist</td><td>SGD 320.00</td><td class="xl-status-partial">⚠ Partial</td><td class="xl-confidence-mid">71%</td><td>Exceeds specialist cap</td><td>Pending</td></tr>
+                  <tr class="highlight"><td>005</td><td>02 Apr 2026</td><td>Ahmad bin Razali</td><td>Medicare Family Clinic</td><td>Medical (GP)</td><td>SGD 80.00</td><td class="xl-status-approved">✅ Approved</td><td class="xl-confidence-high">91%</td><td>MC attached</td><td>Pending ✍️</td></tr>
                 </tbody>
               </table>
             </div>
@@ -1189,18 +1190,18 @@
 
     function downloadExcel() {
       const rows = [
-        ['#', 'Date', 'Employee', 'Clinic / Vendor', 'Category', 'Amount', 'AI Status', 'Confidence', 'Reason Flag', 'HR Decision'],
-        ['001', '03 Mar 2026', 'Galvin Moh',    'Grab',                    'Transport', 'SGD 14.20',  'Approved', '92%', '-',             'Approved'],
-        ['002', '10 Mar 2026', 'Yufong Zhou',   'Restaurant ABC',          'Meals',     'SGD 120.00', 'Partial',  '64%', 'Exceeds cap',   'Pending'],
-        ['003', '17 Mar 2026', 'Sharon',         'Pharmacy',                'Medical',   'SGD 45.80',  'Approved', '95%', '-',             'Approved'],
-        ['004', '19 Mar 2026', 'Amine Souissi', 'Nike Store',              'Personal',  'SGD 320.00', 'Rejected', '-',   'Non-eligible',  'Rejected'],
-        ['005', '02 Apr 2026', 'Yufong Zhou',   'Clinic 888 Medical Ctr', 'Medical',   'SGD 80.00',  'Approved', '91%', 'No MC attached', 'Pending']
+        ['#', 'Date', 'Employee', 'Clinic / Provider', 'Category', 'Amount', 'AI Status', 'Confidence', 'Reason Flag', 'HR Decision'],
+        ['001', '05 Mar 2026', 'Galvin Moh',      'Raffles Medical',       'Medical (GP)',         'SGD 45.00',  'Approved', '95%', '-',                    'Approved'],
+        ['002', '12 Mar 2026', 'Yufong Zhou',     'Q&M Dental Centre',     'Dental',               'SGD 180.00', 'Approved', '89%', 'Within annual cap',    'Approved'],
+        ['003', '20 Mar 2026', 'Sharon',           'Guardian Pharmacy',     'Prescribed Medication','SGD 38.50',  'Approved', '97%', '-',                    'Approved'],
+        ['004', '28 Mar 2026', 'Amine Souissi',   'Gleneagles Hospital',   'Specialist',           'SGD 320.00', 'Partial',  '71%', 'Exceeds specialist cap','Pending'],
+        ['005', '02 Apr 2026', 'Ahmad bin Razali','Medicare Family Clinic', 'Medical (GP)',         'SGD 80.00',  'Approved', '91%', 'MC attached',          'Pending']
       ];
       const ws = XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols'] = [4,14,16,22,12,12,12,12,16,14].map(w => ({ wch: w }));
+      ws['!cols'] = [4,14,18,24,20,12,12,12,22,14].map(w => ({ wch: w }));
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, 'Claims Register');
-      XLSX.writeFile(wb, 'Claims_Register_2026.xlsx');
+      XLSX.writeFile(wb, 'Medical_Claims_Register_2026.xlsx');
     }
 
     function handleAiFileSelect(e) {
